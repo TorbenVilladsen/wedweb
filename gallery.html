@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galleri</title>
+    <link rel="stylesheet" href="styleGallery.css">
+    <link rel="icon" type="image/x-icon" href="assets/images/logo.ico">
+</head>
+
+<body>
+    <main>
+        <section class="hero">
+            <div class="hero-header">
+                <a href="index.html" class="header-icon-link">
+                    <img src="assets/images/logo.png" alt="Site Icon" class="header-icon">
+                </a>
+
+                <nav class="navbar">
+                    <button class="burger-button" id="burger-toggle">
+                        <span class="burger-line"></span>
+                        <span class="burger-line"></span>
+                        <span class="burger-line"></span>
+                    </button>
+
+                    <ul>
+                        <li><a href="index.html">Brylluppet</a></li>
+                        <li><a href="info.html">Praktisk information</a></li>
+                        <li class="active"><a href="gallery.html">Galleri</a></li>
+                        <li><a href="rsvp.html">Svar</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </section>
+
+        <section class="content">
+            <h2>Billed galleri</h2>
+
+            <p>
+                Her vil vi uploade billeder fra brylluppet og give mulighed for at I kan uploade jeres.
+            </p>
+        </section>
+        <!--
+        
+        <div class="upload-section">
+        
+        <label for="uploadInput" class="upload-btn">Upload billeder</label>
+        
+        <input type="file" id="uploadInput" accept="image/*" multiple hidden>
+        
+        </div>
+        
+        
+        <div class="image-grid">
+        
+        <img src="assets/images/couple.png" alt="Example photo 1">
+        
+        <img src="assets/images/couple2.png" alt="Example photo 2"> <img src="assets/images/couple.png" alt="Example photo 1">
+        
+        <img src="assets/images/couple2.png" alt="Example photo 2"> <img src="assets/images/couple.png" alt="Example photo 1">
+        
+        <img src="assets/images/couple2.png" alt="Example photo 2"> <img src="assets/images/couple.png" alt="Example photo 1">
+        
+        <img src="assets/images/couple2.png" alt="Example photo 2"> <img src="assets/images/couple.png" alt="Example photo 1">
+        
+        <img src="assets/images/couple2.png" alt="Example photo 2"> <img src="assets/images/couple.png" alt="Example photo 1">
+        
+        <img src="assets/images/couple2.png" alt="Example photo 2">
+        
+        </div>
+        
+        </section>
+        
+        
+        
+        <div id="imageModal" class="modal">
+        
+        <span class="close">&times;</span>
+        
+        <img class="modal-content" id="modalImage" alt="">
+        
+        <div class="nav-btn prev">&#10094;</div>
+        
+        <div class="nav-btn next">&#10095;</div>
+        
+        </div>
+        
+        -->
+
+    </main>
+
+    <footer>
+        <p>© 2025 Anne & Torben. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+
+            // --- This is your existing UID script ---
+            const params = new URLSearchParams(window.location.search);
+            const uid = params.get("uid");
+            if (uid) { // Check if uid exists
+                document.querySelectorAll("nav.navbar a").forEach(link => {
+                    const url = new URL(link.href, window.location.origin);
+                    url.searchParams.set("uid", uid);
+                    link.href = url.toString();
+                });
+            }
+
+            // --- ADDED: Burger Menu script ---
+            const burgerToggle = document.getElementById("burger-toggle");
+            const navLinks = document.querySelector(".navbar ul");
+
+            if (burgerToggle && navLinks) {
+
+                // Function to close the menu
+                const closeMenu = () => {
+                    navLinks.classList.remove("nav-active");
+                    burgerToggle.classList.remove("burger-active");
+                };
+
+                // Function to toggle the menu
+                const toggleMenu = () => {
+                    navLinks.classList.toggle("nav-active");
+                    burgerToggle.classList.toggle("burger-active");
+                };
+
+                // Click burger to toggle
+                burgerToggle.addEventListener("click", toggleMenu);
+
+                // Click on overlay background to close
+                navLinks.addEventListener("click", (e) => {
+                    if (e.target === navLinks) {
+                        closeMenu();
+                    }
+                });
+            }
+        });
+    </script>
+
+</body>
+
+</html>

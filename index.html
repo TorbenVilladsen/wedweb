@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vores bryllup</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/x-icon" href="assets/images/logo.ico">
+</head>
+<body>
+    <main>
+        <section class="hero">
+            <div class="hero-header">
+                <header class="banner">
+                    <h1 id="countdown">Loading countdown...</h1>
+                </header>
+                <nav class="navbar">
+                    <button class="burger-button" id="burger-toggle">
+                        <span class="burger-line"></span>
+                        <span class="burger-line"></span>
+                        <span class="burger-line"></span>
+                    </button>
+                    
+                    <ul>
+                        <li class="active"><a href="index.html">Brylluppet</a></li>
+                        <li><a href="info.html">Praktisk information</a></li>
+                        <li><a href="gallery.html">Galleri</a></li>
+                        <li><a href="rsvp.html">Svar</a></li>
+                    </ul>
+                </nav>
+            </div>
+            
+            <img src="assets/images/couple2.png" alt="Wedding couple" class="couple-image">
+            <div class="names-overlay">
+                <h2>Anne & Torben</h2>
+                <p>15. august, 2026</p>
+            </div>
+        </section>
+
+        <section class="content">
+            <h1 id="greeting"></h1>
+            <h1 id="greeting-header">Velkommen til vores bryllupsside. <br/> Her finder man information omkring vores store dag.</h1>            
+        </section>
+        
+
+
+        <section class="details">
+            <h2>Vielsen</h2>
+
+            <img src="assets/images/rings.png" alt="Rings" class="details-image">
+
+            <div class="details-columns">
+                <div class="column">
+                    <h3>Hvor og hvornår?</h3>
+                    <p>
+                        Klokken 13.00
+                    </p>
+
+                    <p>
+                        Ho kirke
+                    </p>
+
+                    <p>
+                        <a href="https://maps.google.com/?q=Hovej+21A,+6857+Blåvand" target="_blank">
+                            Hovej 21A, 6857 Blåvand
+                        </a>
+                    </p>
+                </div>
+                <div class="column">
+                    <h3>Hvad siger biblen?</h3>
+                    <p id="dynamic-text-full">
+                        Den, der finder en hustru, finder lykken og får en nådegave fra Herren.
+                    </p>
+                    <p id="dynamic-text-ref">
+                        Ordsprogenes Bog 18:22
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section class="details">
+            <h2>Kaffe, kage og fest</h2>
+
+            <div class="details-columns">
+                <div class="column">
+                    <img src="assets/images/coffeeCake.png" alt="CoffeeAndCake" class="details-image">
+                    <p>
+                        Umiddelbart efter vores kirkelige splejsning vil der blive serveret kaffe og kage samt det der er stærkere på Ho Kro kun 200 m fra kirken. 
+                        Hvis man ønsker at overnatte ved Ho Feriecenter er det også et oplagt tidspunkt at tjekke ind. 
+                        Der vil være forskellige små spil man kan fornøjelse med, da flere af os jo kommer fra det sydjyske og ikke Nødvendigvis er de bedste til at samtale.
+                    </p>
+                </div>
+                <div class="column">
+                    <img src="assets/images/dinnerParty.png" alt="dinnerParty" class="details-image">
+                    <p>
+                        Når eftermiddagen begynder at gå imod aftenen vil vi sætte os til bords inde på kroen, 
+                        hvor der vil blive serveret både vådt og tørt. 
+                        Senere ryddes bordene og der vil blive budt op til dans.
+                    </p>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer>
+        <p>© 2025 Anne & Torben. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const params = new URLSearchParams(window.location.search);
+            const uid = params.get("uid");
+            const greetingEl = document.getElementById("greeting");
+
+            if (!uid) {
+                greetingEl.textContent = "Kære gæst!";
+                return;
+            }
+
+            try {
+                const response = await fetch("guest.json");
+                const guests = await response.json();
+
+                if (guests[uid]) {
+                    greetingEl.textContent = `Kære ${guests[uid]}!`;
+                } else {
+                    greetingEl.textContent = "Kære gæst!";
+                }
+            } catch (err) {
+                console.error("Error loading guest data:", err);
+                greetingEl.textContent = "Kære gæst!";
+            }
+        });
+    </script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+
+        // --- This is your existing UID script ---
+        const params = new URLSearchParams(window.location.search);
+        const uid = params.get("uid");
+
+        if (uid) { // Check if uid exists before running
+            document.querySelectorAll("nav.navbar a").forEach(link => {
+                const url = new URL(link.href, window.location.origin);
+                url.searchParams.set("uid", uid);
+                link.href = url.toString();
+            });
+        }
+
+        // --- MODIFIED: Burger Menu script ---
+        const burgerToggle = document.getElementById("burger-toggle");
+        const navLinks = document.querySelector(".navbar ul");
+
+        if (burgerToggle && navLinks) {
+
+            // Function to close the menu
+            const closeMenu = () => {
+                navLinks.classList.remove("nav-active");
+                burgerToggle.classList.remove("burger-active");
+            };
+
+            // Function to toggle the menu
+            const toggleMenu = () => {
+                navLinks.classList.toggle("nav-active");
+                burgerToggle.classList.toggle("burger-active");
+            };
+
+            // Click burger to toggle
+            burgerToggle.addEventListener("click", toggleMenu);
+
+            // --- NEW: Click on overlay background to close ---
+            navLinks.addEventListener("click", (e) => {
+                // Check if the click was directly on the overlay (navLinks)
+                // and not on a child element (like <li> or <a>)
+                if (e.target === navLinks) {
+                    closeMenu();
+                }
+            });
+        }
+    });
+</script>
+
+
+</body>
+</html>

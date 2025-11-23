@@ -1,0 +1,375 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    background: #fafafa;
+    color: #000000;
+    background-color: #e8daf0;
+    line-height: 1.6;
+
+    /* --- ADDED: Sticky Footer --- */
+    display: flex;
+    flex-direction: column;
+    min-height: 100svh;
+}
+
+/* Add this new rule for your wrapper */
+#main-content {
+    /* This ensures the wrapper takes up the full height */
+    min-height: 100svh;
+    flex-direction: column;
+    /* Note: We don't set display: flex here because JS handles it (see Step 2) */
+}
+
+/* Ensure Main expands to push footer down */
+main {
+    flex-grow: 1;
+    width: 100%;
+    /* Good practice to ensure it fills width */
+}
+
+/* MODIFIED: Use Flexbox for alignment */
+.hero-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 10;
+
+    display: flex;
+    justify-content: space-between;
+    /* <-- CHANGED: Pushes icon left, nav right */
+    align-items: center;
+    padding: 2.5rem 4rem;
+}
+
+/* --- ADDED: Icon Styles --- */
+.header-icon-link {
+    display: block;
+    /* Ensures proper layout */
+}
+
+.header-icon {
+    height: 35px;
+    /* Approx burger size */
+    width: auto;
+}
+
+/* MODIFIED: Remove padding and font-size */
+.navbar {
+    background: none;
+    text-align: center;
+}
+
+/* MODIFIED: Change font-size */
+.navbar a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 1.3rem;
+    /* <-- WITH THIS (or larger if you prefer) */
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+
+.navbar ul {
+    list-style: none;
+    display: flex;
+    justify-content: right;
+    gap: 4rem;
+}
+
+.navbar a:hover {
+    text-decoration: underline;
+}
+
+.navbar .active a {
+    text-decoration: underline;
+}
+
+/* --- ADDED: Burger Button Styles (Hidden on Desktop) --- */
+.burger-button {
+    display: none;
+    /* Hidden by default */
+    flex-direction: column;
+    justify-content: space-around;
+    width: 30px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 1001;
+    /* Must be HIGHER than the overlay */
+}
+
+.burger-line {
+    width: 30px;
+    height: 3px;
+    background-color: #fff;
+    border-radius: 10px;
+    /* CHANGED: Made transition slower */
+    transition: all 0.6s ease-in-out;
+}
+
+/* --- ADDED: Burger "X" Animation --- */
+.burger-button.burger-active .burger-line:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+}
+
+.burger-button.burger-active .burger-line:nth-child(2) {
+    opacity: 0;
+}
+
+.burger-button.burger-active .burger-line:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+}
+
+/* --- End of New Burger Styles --- */
+
+
+/* Content */
+.content {
+    padding: 7rem 0rem 0rem 0rem;
+    max-width: 900px;
+    margin: auto;
+    text-align: center;
+}
+
+/* RSVP Form Styles */
+.rsvp-form {
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.rsvp-form label {
+    margin-bottom: 0.5rem;
+}
+
+.rsvp-form textarea {
+    width: 80%;
+    max-width: 600px;
+    padding: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    font-size: 1rem;
+    resize: vertical;
+}
+
+.button-group {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    margin-bottom: 10px;
+}
+
+.button-group button {
+    padding: 0.8rem 1.8rem;
+    border: none;
+    border-radius: 25px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+
+.button-group .accept {
+    background-color: #4caf50;
+    color: white;
+}
+
+.button-group .accept:hover {
+    background-color: #43a047;
+}
+
+.button-group .decline {
+    background-color: #e53935;
+    color: white;
+}
+
+.button-group .decline:hover {
+    background-color: #d32f2f;
+}
+
+.spacer {
+    aspect-ratio: 900/300;
+    width: 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+    margin-bottom: -550px;
+}
+
+
+.layer1 {
+    background-image: url('../assets/layer1.svg');
+}
+
+body,
+html {
+    overflow-x: hidden;
+}
+
+/* Initial state: Hidden and pushed left */
+.animate-from-left {
+    opacity: 0;
+    transform: translateX(-50px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    will-change: opacity, transform;
+}
+
+/* State when visible */
+.animate-from-left.in-view {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Delays for cascading effect */
+.delay-100 {
+    transition-delay: 0.1s;
+}
+
+.delay-200 {
+    transition-delay: 0.2s;
+}
+
+.delay-300 {
+    transition-delay: 0.3s;
+}
+
+.delay-400 {
+    transition-delay: 0.4s;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    background: #000000;
+    color: #fff;
+    padding: 1rem;
+    bottom: 0;
+}
+
+
+/* ==================================================
+    NEW: RESPONSIVE STYLES (Mobile Devices)
+==================================================
+*/
+@media (max-width: 1024px) {
+
+    .hero-header {
+        padding: 1rem 2rem;
+        /* Smaller header padding */
+    }
+
+    .header-icon {
+        height: 30px;
+        /* Make icon match burger */
+    }
+
+    /* --- SHOW BURGER BUTTON --- */
+    .burger-button {
+        display: flex;
+
+        /* --- CHANGED: Added these 3 lines to fix visibility --- */
+        position: absolute;
+        /* Lifts it on top of the overlay */
+        top: 1rem;
+        /* Manually position it */
+        right: 2rem;
+        /* Manually position it */
+    }
+
+    /* --- MOBILE NAV OVERLAY --- */
+    .navbar ul {
+        /* CHANGED: Swapped 'display' for 'opacity' to enable fading */
+        /* display: none; */
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.6s ease, visibility 0.6s ease;
+        display: flex;
+        /* Keep flex properties */
+
+        /* Hide desktop links */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        flex-direction: column;
+        justify-content: flex-start;
+        padding-top: 20vh;
+        align-items: center;
+        gap: 2rem;
+        backdrop-filter: blur(15px);
+        z-index: 1000;
+    }
+
+    .navbar ul.nav-active {
+        /* CHANGED: Toggle opacity/visibility instead of display */
+        /* display: flex; */
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .navbar a {
+        font-size: 1.5rem;
+        color: #fff;
+        text-shadow: none;
+    }
+
+    /* --- CONTENT SECTION --- */
+    .content {
+        padding: 7rem 1rem 0 1rem;
+        /* Adjust top padding */
+        max-width: 100%;
+    }
+
+    .content h2 {
+        font-size: 2.2rem;
+    }
+
+    .content p {
+        font-size: 1rem;
+    }
+
+    /* --- RSVP FORM --- */
+    .rsvp-form textarea {
+        width: 95%;
+        /* Make textarea use more screen width */
+    }
+
+    .button-group {
+        flex-direction: column;
+        /* Stack buttons vertically */
+        width: 95%;
+        gap: 0.5rem;
+        margin-bottom: 25px;
+        /* Reduce gap for stacked buttons */
+    }
+
+    .button-group button {
+        width: 100%;
+        /* Make buttons full-width */
+    }
+
+    .spacer {
+        aspect-ratio: 900/900;
+        width: 100%;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: cover;
+        margin-bottom: -280px;
+    }
+
+
+    .layer1 {
+        background-image: url('../assets/layer1.svg');
+    }
+}

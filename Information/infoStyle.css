@@ -1,0 +1,590 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    background: #fafafa;
+    color: #000000;
+    background-color: #e8daf0;
+    line-height: 1.6;
+
+    display: flex;
+    flex-direction: column;
+    min-height: 100svh;
+}
+
+main {
+    flex-grow: 1;
+}
+
+
+.hero-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 10;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2.5rem 4rem;
+}
+
+.header-icon-link {
+    display: block;
+}
+
+.header-icon {
+    height: 35px;
+    width: auto;
+}
+
+.navbar {
+    background: none;
+    text-align: center;
+}
+
+.navbar a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 1.3rem;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+
+.navbar ul {
+    list-style: none;
+    display: flex;
+    justify-content: right;
+    gap: 4rem;
+}
+
+.navbar a:hover {
+    text-decoration: underline;
+}
+
+.navbar .active a {
+    text-decoration: underline;
+}
+
+.burger-button {
+    display: none;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 30px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 1001;
+}
+
+.burger-line {
+    width: 30px;
+    height: 3px;
+    background-color: #fff;
+    border-radius: 10px;
+    /* CHANGED: Made transition slower */
+    transition: all 0.6s ease-in-out;
+}
+
+.burger-button.burger-active .burger-line:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+}
+
+.burger-button.burger-active .burger-line:nth-child(2) {
+    opacity: 0;
+}
+
+.burger-button.burger-active .burger-line:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+}
+
+
+.content {
+    padding: 7rem 0rem 0rem 0rem;
+    max-width: 900px;
+    margin: auto;
+    text-align: center;
+}
+
+.tooltip {
+    position: relative;
+    cursor: pointer;
+}
+
+.tooltiptext {
+    visibility: hidden;
+    opacity: 0;
+    width: 210px;
+    background-color: #fff;
+    color: #333;
+    text-align: left;
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    position: absolute;
+    z-index: 15;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -6px;
+    border-width: 6px;
+    border-style: solid;
+    border-color: #fff transparent transparent transparent;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+
+.content a {
+    color: #333 !important;
+    text-decoration: underline;
+    padding-bottom: 2px;
+}
+
+.content a:hover {
+    color: #333 !important;
+    border-bottom-color: #555;
+    text-decoration: underline;
+}
+
+.content ul {
+    list-style-type: disc;
+    list-style-position: outside;
+    margin: 1rem 0;
+
+    display: inline-block;
+    text-align: left;
+    padding-left: 40px;
+}
+
+.content li {
+    margin: 0.5rem 0;
+    line-height: 1.6;
+}
+
+.content h2 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.iconImage-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2.5rem;
+    margin-top: 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.iconImage-container img {
+    width: 120px;
+    height: auto;
+    object-fit: contain;
+}
+
+.image-slide-section {
+    position: relative;
+    width: 100%;
+    height: 900px;
+
+    /* CRITICAL: Changed from hidden to visible so images can overlap the wave */
+    overflow: visible;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #fafafa;
+    margin-top: 6rem;
+    background-color: #e8daf0;
+
+    /* Do NOT add a z-index here, or it will trap the images inside */
+}
+
+.image-container {
+    position: relative;
+    width: 1200px;
+    max-width: 95%;
+    height: 800px;
+
+    /* Highest priority - puts boxers on top of everything */
+    z-index: 20;
+}
+
+.base-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+    border-radius: 24px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+}
+
+
+.boxer-group {
+    position: absolute;
+    top: 35%;
+    width: 65%;
+    height: 65%;
+
+    opacity: 0;
+    transform-origin: center;
+    z-index: 2;
+}
+
+.boxer-text {
+    position: absolute;
+    top: 65%;
+    left: 55%;
+    transform: translateX(-50%);
+
+    width: 60%;
+    height: auto;
+    object-fit: contain;
+    z-index: 10;
+}
+
+.boxer-image {
+    width: 100%;
+    height: 100%;
+
+    object-fit: contain;
+    border-radius: 24px;
+}
+
+.overlay-image {
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%;
+    height: auto;
+    object-fit: contain;
+    z-index: 5;
+    opacity: 0;
+}
+
+.image-container.animate-now .overlay-image {
+    animation: fadeInOverlay 1s ease forwards;
+    animation-delay: 6.8s;
+}
+
+.left-group {
+    left: -70%;
+    z-index: 2;
+}
+
+.image-container.animate-now .left-group {
+    animation: slideInLeft 5s ease forwards;
+    animation-delay: 1s;
+}
+
+.right-group {
+    right: -70%;
+    z-index: 3;
+}
+
+.image-container.animate-now .right-group {
+    animation: slideInRight 5s ease forwards;
+    animation-delay: 1.8s;
+}
+
+@keyframes slideInLeft {
+    0% {
+        transform: translateX(0) rotate(0deg);
+        opacity: 0;
+    }
+
+    70% {
+        transform: translateX(85%) rotate(0deg);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateX(80%) rotate(-4deg);
+        opacity: 1;
+    }
+}
+
+@keyframes slideInRight {
+    0% {
+        transform: translateX(0) rotate(0deg);
+        opacity: 0;
+    }
+
+    70% {
+        transform: translateX(-85%) rotate(0deg);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateX(-80%) rotate(4deg);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInOverlay {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.spacer {
+aspect-ratio: 900/300;
+width: 100%;
+background-repeat: no-repeat;
+background-position: center;
+background-size: cover;
+margin-bottom: -500px;
+}
+
+/* 3. Update the Wave Spacer */
+.spacer2 {
+    aspect-ratio: 1100/300;
+    width: 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+
+    /* Pull the wave UP so it covers the bottom of the purple section */
+    margin-top: -250px;
+
+    /* RELATIVE POSITION is required for z-index to work */
+    position: relative;
+
+    /* Middle priority: Above background (0), but below Boxers (20) */
+    z-index: 10;
+
+    /* Optional: Ensures the invisible box of the wave doesn't block clicks */
+    pointer-events: none;
+}
+
+.layer1 {
+background-image: url('../assets/layer1.svg');
+}
+
+.layer2 {
+background-image: url('../assets/layer2.svg');
+}
+
+footer {
+    text-align: center;
+    background: #000000;
+    color: #fff;
+    padding: 1rem;
+}
+
+
+@media (max-width: 1024px) {
+
+    .hero-header {
+        position: absolute;
+        padding: 1rem 2rem;
+    }
+
+    .header-icon {
+        height: 30px;
+    }
+
+    .burger-button {
+        display: flex;
+        position: absolute;
+        top: 1rem;
+        right: 2rem;
+    }
+
+    .navbar ul {
+        /* CHANGED: Swapped 'display' for 'opacity' to enable fading */
+        /* display: none; */
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.6s ease, visibility 0.6s ease;
+
+        display: flex;
+        /* Keep flex properties */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+
+        flex-direction: column;
+        justify-content: flex-start;
+        padding-top: 20vh;
+        align-items: center;
+        gap: 2rem;
+
+        backdrop-filter: blur(15px);
+        z-index: 1000;
+    }
+
+    .navbar ul.nav-active {
+        /* CHANGED: Toggle opacity/visibility instead of display */
+        /* display: flex; */
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .navbar a {
+        font-size: 1.5rem;
+        color: #fff;
+        text-shadow: none;
+    }
+
+    .content {
+        padding: 7rem 1rem 0 1rem;
+        max-width: 100%;
+    }
+
+    .content h2 {
+        font-size: 2.2rem;
+    }
+
+    .iconImage-container img {
+        width: 80px;
+    }
+
+    .content p,
+    .content li {
+        font-size: 1rem;
+    }
+
+    .content ul {
+        padding-left: 25px;
+    }
+
+
+    .image-slide-section {
+        overflow: visible;
+        height: 70vh;
+        margin-top: 2rem;
+    }
+
+    .image-container {
+        width: 95vw;
+        height: 60vh;
+    }
+
+    .overlay-image {
+        width: 80%;
+        top: 25%;
+    }
+
+    .boxer-group {
+        top: 40%;
+        height: 60%;
+        width: 65%;
+    }
+
+    .spacer {
+        aspect-ratio: 900/1900;
+        width: 100%;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: cover;
+        margin-bottom: -700px;
+    }
+    .spacer2 {
+        aspect-ratio: 1200/900;
+        width: 100%;
+        height: 50%;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: cover;
+
+        /* Adjust overlap for mobile screens */
+        margin-top: -150px;
+        position: relative;
+        z-index: 10;
+    }
+
+    .layer1 {
+        background-image: url('../assets/layer1.svg');
+    }
+ 
+    .layer2 {
+        background-image: url('../assets/layer2.svg');
+    }
+
+    footer {
+        text-align: center;
+        background: #000000;
+        color: #fff;
+        padding: 1rem;
+    }
+
+}
+
+/* --- SCROLL ANIMATION STYLES --- */
+
+/* Initial state: Hidden and pushed left */
+.animate-from-left {
+    opacity: 0;
+    transform: translateX(-50px);
+    /* Smooth transition for appear and disappear */
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    will-change: opacity, transform;
+}
+
+/* State when visible */
+.animate-from-left.in-view {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Optional delay for a cascading effect (e.g., icons appear after header) */
+.delay-100 {
+    transition-delay: 0.1s;
+}
+
+.delay-200 {
+    transition-delay: 0.2s;
+}
+.delay-300 {
+    transition-delay: 0.3s;
+}
+
+.delay-400 {
+    transition-delay: 0.4s;
+}
+.delay-500 {
+    transition-delay: 0.5s;
+}
+
+.delay-600 {
+    transition-delay: 0.6s;
+}
+.delay-700 {
+    transition-delay: 0.7s;
+}
+
+/* Prevent horizontal scrollbar during animation */
+body,
+html {
+    overflow-x: hidden;
+}

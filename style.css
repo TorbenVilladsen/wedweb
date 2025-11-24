@@ -154,7 +154,7 @@ body {
     position: relative;
     /* CRITICAL: Anchors the absolute wave inside */
     /* Add extra padding at bottom so text doesn't overlap the wave */
-    max-width: 1900px;
+    max-width: 100%;
     margin: auto;
     text-align: center;
     display: flex;

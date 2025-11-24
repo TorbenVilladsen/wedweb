@@ -1,0 +1,554 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --waveC1: #9aa28b;
+    --waveC2: #009473;
+}
+
+body {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    background: #fafafa;
+    color: #000000;
+    background-color: #e8daf0;
+    line-height: 1.6;
+}
+
+.hero-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 4rem;
+}
+
+.banner {
+    text-align: left;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 5px 16px rgba(0, 0, 0, 1);
+}
+
+.navbar {
+    background: none;
+    text-align: center;
+}
+
+.navbar a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 1.3rem;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+.navbar ul {
+    list-style: none;
+    display: flex;
+    justify-content: right;
+    gap: 4rem;
+}
+
+.navbar a:hover {
+    text-decoration: underline;
+}
+
+.navbar .active a {
+    text-decoration: underline;
+}
+
+/* --- Burger Button Styles --- */
+.burger-button {
+    display: none;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 30px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 1001;
+}
+
+.burger-line {
+    width: 30px;
+    height: 3px;
+    background-color: #fff;
+    border-radius: 10px;
+    /* CHANGED: Made transition slower */
+    transition: all 0.6s ease-in-out;
+}
+
+/* --- Burger "X" Animation --- */
+.burger-button.burger-active .burger-line:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+}
+
+.burger-button.burger-active .burger-line:nth-child(2) {
+    opacity: 0;
+}
+
+.burger-button.burger-active .burger-line:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+}
+
+/* --- End of Burger Styles --- */
+
+
+
+/* Hero image and overlay */
+.hero {
+    position: relative;
+    text-align: center;
+    overflow: hidden;
+}
+
+.couple-image {
+    width: 100%;
+    height: auto;
+    max-height: 150vh;
+    object-fit: cover;
+}
+
+.names-overlay {
+    position: absolute;
+    bottom: 45%;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+    width: 90%;
+}
+
+.names-overlay h2 {
+    font-size: 7rem;
+    margin-bottom: 0.5rem;
+}
+
+.names-overlay p {
+    font-size: 3.5rem;
+}
+
+.content {
+    position: relative;
+    /* CRITICAL: Anchors the absolute wave inside */
+    padding: 3rem 2rem;
+    /* Add extra padding at bottom so text doesn't overlap the wave */
+    max-width: 1900px;
+    margin: auto;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+}
+
+.content {
+    position: relative;
+    /* CRITICAL: Anchors the absolute wave inside */
+    /* Add extra padding at bottom so text doesn't overlap the wave */
+    max-width: 1900px;
+    margin: auto;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+}
+
+
+.content h1 {
+    font-size: 2rem;
+    margin-bottom: 0;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    background: #000000;
+    color: #fff;
+    padding: 1rem;
+    margin-top: -20px;
+}
+
+/* --- DETAILS SECTION START --- */
+.details {
+    max-width: 1100px;
+    margin: 1rem auto;
+    text-align: center;
+    padding: 5rem;
+}
+
+.details h2 {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+}
+
+.details-image {
+    width: 100%;
+    height: auto;
+    margin-bottom: 1rem;
+    max-width: 400px;
+}
+
+.details-columns {
+    display: flex;
+    gap: 4rem;
+    margin-top: 0rem;
+    text-align: left;
+}
+
+.details-columns .column {
+    flex: 1;
+}
+
+.details-columns p {
+    font-size: 1.15rem;
+    line-height: 1.8;
+    color: #000000;
+    margin-top: 1rem;
+}
+
+.details-columns {
+    text-align: center;
+}
+
+.details-columns p a {
+    color: #000000 !important;
+    text-decoration: none;
+    padding-bottom: 2px;
+    text-decoration: underline;
+}
+
+.details-columns p a:hover {
+    color: #000000 !important;
+    border-bottom-color: #555;
+    text-decoration: underline;
+}
+
+#dynamic-text-ref {
+    font-style: italic;
+    text-align: right;
+}
+
+.grey {
+      background: var(--waveC1);
+      
+}
+
+.red {
+    background: var(--waveC2);
+}
+
+/* Bubble bg with plain CSS */
+.wave {
+    position: absolute;
+    /* Move it down by the exact height of the SVG */
+    bottom: -100px;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    line-height: 0;
+    z-index: 1;
+    /* Ensures it sits on top of the next section if needed */
+}
+.wave2 {
+    transform: rotate(180deg);
+    position: absolute;
+    /* Move it down by the exact height of the SVG */
+    top: -100px;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    line-height: 0;
+    z-index: 1;
+}
+
+.wave3 {
+    
+    position: absolute;
+    /* Move it down by the exact height of the SVG */
+    top: -100px;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    line-height: 0;
+    z-index: 1;
+}
+.wave svg {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100px;
+    /* This height must match the bottom value above */
+}
+
+.wave2 svg {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100px;
+    /* This height must match the bottom value above */
+}
+
+.wave3 svg {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100px;
+    transform: rotate(180deg);
+    /* This height must match the bottom value above */
+}
+
+.wave .shape-fill {
+    fill: var(--waveC1);
+}
+.wave2 .shape-fill {
+    fill: var(--waveC2);
+}
+.wave3 .shape-fill {
+    fill: var(--waveC1);
+}
+.back {
+    background-color: var(--waveC2);
+}
+
+
+/* --- FIXED QUOTE HEIGHT (Corrected) --- */
+.quote-wrapper {
+    /* This reserves the vertical space so the footer doesn't jump */
+    min-height: 25rem;
+
+    /* This ensures the text stays at the TOP */
+    display: block;
+
+    /* Optional: Smoothly animate height changes if you change the min-height later */
+    transition: min-height 0.3s ease;
+}
+
+/* Mobile adjustment: Text wraps more on phones, so it needs more height */
+@media (max-width: 1024px) {
+    .quote-wrapper {
+        /* Increase height for mobile because text lines wrap more */
+        min-height: 22rem;
+    }
+}
+/* --- DETAILS SECTION END --- */
+
+
+/*
+========================================
+    RESPONSIVE STYLES (Mobile Devices)
+========================================
+*/
+@media (max-width: 1024px) {
+
+    /* --- HERO HEADER & NAV --- */
+    .hero-header {
+        position: absolute;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+        background: none;
+    }
+
+    .banner {
+        font-size: 0.8rem;
+        text-align: left;
+    }
+
+    /* --- MODIFIED: Show Burger, Hide Desktop Nav --- */
+    .burger-button {
+        display: flex;
+        position: absolute;
+        top: 1rem;
+        right: 2rem;
+        z-index: 1001;
+    }
+
+    .navbar ul {
+        /* CHANGED: Swapped 'display' for 'opacity' to enable fading */
+        /* display: none; */
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.6s ease, visibility 0.6s ease;
+        display: flex;
+        /* Keep flex properties */
+
+        /* --- Style as a Full-Screen Overlay --- */
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+
+        /* --- CHANGED: Text Position --- */
+        flex-direction: column;
+        justify-content: flex-start;
+        padding-top: 20vh;
+        align-items: center;
+        gap: 2rem;
+
+        /* Appearance */
+        backdrop-filter: blur(15px);
+        z-index: 1000;
+    }
+
+    .navbar a {
+        font-size: 1.5rem;
+        color: #fff;
+    }
+
+    /* --- This class is Toggled by JS --- */
+    .navbar ul.nav-active {
+        /* CHANGED: Toggle opacity/visibility instead of display */
+        /* display: flex; */
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .couple-image {
+        width: 100%;
+        height: auto;
+        object-fit: cover;
+    }
+
+    /* --- HERO OVERLAY --- */
+    .names-overlay {
+        position: absolute;
+        top: 55%;
+        left: 50%;
+        bottom: auto;
+        transform: translate(-50%, -50%);
+        width: 90%;
+    }
+
+    .names-overlay h2 {
+        font-size: 2.5rem;
+    }
+
+    .names-overlay p {
+        font-size: 1.75rem;
+    }
+
+    /* --- CONTENT --- */
+    .content {
+        padding: 2rem 1rem;
+    }
+
+    .content h1 {
+        font-size: 1.5rem;
+    }
+  
+    .content h2 {
+        font-size: 1.1rem;
+    }
+
+    /* Bubble bg with plain CSS */
+    .wave {
+        position: absolute;
+        /* Move it down by the exact height of the SVG */
+        bottom: -70px;
+        left: 0;
+        width: 120%;
+        overflow: hidden;
+        line-height: 0;
+        z-index: 1;
+        /* Ensures it sits on top of the next section if needed */
+    }
+
+    .wave svg {
+        position: relative;
+        display: block;
+        width: 120%;
+        height: 70px;
+        /* This height must match the bottom value above */
+    }
+
+
+    .wave2 {
+        transform: rotate(180deg);
+        position: absolute;
+        /* Move it down by the exact height of the SVG */
+        top: -70px;
+        left: 0;
+        width: 120%;
+        overflow: hidden;
+        line-height: 0;
+        transform: rotate(180deg);
+        z-index: 1;
+    }
+
+
+    .wave2 svg {
+        position: relative;
+        display: block;
+        width: 120%;
+        height: 70px;
+        /* This height must match the bottom value above */
+    }
+
+    /* --- DETAILS SECTIONS --- */
+    .details {
+        margin: 2rem auto;
+        padding: 1rem;
+    }
+
+    .details h2 {
+        font-size: 2.2rem;
+    }
+
+    .details-columns {
+        flex-direction: column;
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    .details-columns p {
+        font-size: 1rem;
+    }
+
+    #dynamic-text-ref {
+        text-align: center;
+    }
+    
+    footer {
+        margin-top: -40px;
+    }
+}
+
+
+/* --- SCROLL ANIMATION --- */
+
+/* Initial state: Hidden and pushed left */
+.animate-from-left {
+    opacity: 0;
+    transform: translateX(-50px);
+    /* Applies to both appearing and disappearing */
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    will-change: opacity, transform;
+}
+
+/* State when visible: Back to normal */
+.animate-from-left.in-view {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Delays for staggered columns */
+.delay-200 {
+    transition-delay: 0.2s;
+}
+
+body,
+html {
+    overflow-x: hidden;
+    /* Important to prevent horizontal scrollbars */
+}
+

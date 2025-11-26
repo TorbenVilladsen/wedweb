@@ -207,7 +207,9 @@ footer {
     flex: 1;
 }
 
-.details-columns p {
+.details-columns p,
+.details-columns .dynamic-singular,
+.details-columns .dynamic-plural {
     font-size: 1.15rem;
     line-height: 1.8;
     color: #000000;
@@ -487,6 +489,27 @@ footer {
 
 
     .wave2 svg {
+        position: relative;
+        display: block;
+        width: 120%;
+        height: 70px;
+        /* This height must match the bottom value above */
+    }
+
+    /* Bubble bg with plain CSS */
+    .wave3 {
+        position: absolute;
+        /* Move it down by the exact height of the SVG */
+        top: -70px;
+        left: -10px;
+        width: 120%;
+        overflow: hidden;
+        line-height: 0;
+        z-index: 1;
+        /* Ensures it sits on top of the next section if needed */
+    }
+
+    .wave3 svg {
         position: relative;
         display: block;
         width: 120%;

@@ -38,6 +38,13 @@
         #main-content {
             display: none;
         }
+
+        /* Classes for dynamic text switching */
+        .dynamic-singular,
+        .dynamic-plural {
+            display: none;
+            /* Hidden by default, JS toggles this */
+        }
     </style>
 </head>
 
@@ -50,244 +57,319 @@
     </div>
 
     <div id="main-content">
-    <main>
-        <section class="hero grey">
-            <div class="hero-header">
-                <header class="banner">
-                    <h1 id="countdown">Loading countdown...</h1>
-                </header>
-                <nav class="navbar">
-                    <button class="burger-button" id="burger-toggle">
-                        <span class="burger-line"></span>
-                        <span class="burger-line"></span>
-                        <span class="burger-line"></span>
-                    </button>
+        <main>
+            <section class="hero">
+                <div class="hero-header">
+                    <header class="banner">
+                        <h1 id="countdown">Loading countdown...</h1>
+                    </header>
+                    <nav class="navbar">
+                        <button class="burger-button" id="burger-toggle">
+                            <span class="burger-line"></span>
+                            <span class="burger-line"></span>
+                            <span class="burger-line"></span>
+                        </button>
 
-                    <ul>
-                        <li class="active"><a href="index.html">Brylluppet</a></li>
-                        <li><a href="../Information/">Praktisk information</a></li>
-                        <li><a href="../Galleri/">Galleri</a></li>
-                        <li><a href="../RSVP/">RSVP</a></li>
-                    </ul>
-                </nav>
-            </div>
-            
-            <img src="../assets/images/couple2.png" alt="Wedding couple" class="couple-image">
-            <div class="names-overlay">
-                <h2>Anne & Torben</h2>
-                <p>15. august, 2026</p>
-            </div>
-        </section>
-
-
-        <section class="content grey">
-            <div class="wave3">
-                <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
-                    <path
-                        d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z"
-                        opacity=".25" class="shape-fill"></path>
-                    <path
-                        d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z"
-                        opacity=".5" class="shape-fill"></path>
-                    <path
-                        d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z"
-                        class="shape-fill"></path>
-                </svg>
-            </div>
-
-            <h1 id="greeting" class="animate-from-left"></h1>
-            <h2 id="greeting-header" class="animate-from-left">Velkommen til vores bryllupsside. <br/> Her finder man information omkring vores store dag.</h2>            
-
-            <div class="wave">
-                <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
-                    <path
-                        d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z"
-                        opacity=".25" class="shape-fill"></path>
-                    <path
-                        d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z"
-                        opacity=".5" class="shape-fill"></path>
-                    <path
-                        d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z"
-                        class="shape-fill"></path>
-                </svg>
-            </div>
-        </section>
-
-        
-
-
-        <section class="details">
-            <h2 class="animate-from-left">Vielsen</h2>
-
-            <img src="../assets/images/rings.png" alt="Rings" class="details-image animate-from-left">
-
-            <div class="details-columns">
-                <div class="column animate-from-left">
-                    <h3>Hvor og hvornår?</h3>
-                    <p>
-                        Klokken 13.00
-                    </p>
-
-                    <p>
-                        Ho kirke
-                    </p>
-
-                    <p>
-                        <a href="https://maps.google.com/?q=Hovej+21A,+6857+Blåvand" target="_blank">
-                            Hovej 21A, 6857 Blåvand
-                        </a>
-                    </p>
+                        <ul>
+                            <li class="active"><a href="index.html">Brylluppet</a></li>
+                            <li><a href="../Information/">Praktisk information</a></li>
+                            <li><a href="../Galleri/">Galleri</a></li>
+                            <li><a href="../RSVP/">RSVP</a></li>
+                        </ul>
+                    </nav>
                 </div>
-                <div class="column animate-from-left delay-200">
-                    <h3>Hvad siger biblen?</h3>
 
-                    <div class="quote-wrapper">
-                        <p id="dynamic-text-full">
-                            Den, der finder en hustru, finder lykken og får en nådegave fra Herren.
+                <img src="../assets/images/couple2.png" alt="Wedding couple" class="couple-image">
+                <div class="names-overlay">
+                    <h2>Anne & Torben</h2>
+                    <p>15. august, 2026</p>
+                </div>
+            </section>
+
+
+            <section class="content grey">
+                <div class="wave3">
+                    <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120"
+                        preserveAspectRatio="none">
+                        <path
+                            d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z"
+                            opacity=".25" class="shape-fill"></path>
+                        <path
+                            d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z"
+                            opacity=".5" class="shape-fill"></path>
+                        <path
+                            d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z"
+                            class="shape-fill"></path>
+                    </svg>
+                </div>
+
+                <h1 id="greeting" class="animate-from-left"></h1>
+                <h2 id="greeting-header" class="animate-from-left">
+                    Velkommen til vores bryllupsside. <br />
+
+                    <span class="dynamic-singular">
+                        Her finder du information omkring vores store dag.
+                    </span>
+                    <span class="dynamic-plural">
+                        Her finder I information omkring vores store dag.
+                    </span>
+                </h2>
+
+                <div class="wave">
+                    <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120"
+                        preserveAspectRatio="none">
+                        <path
+                            d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z"
+                            opacity=".25" class="shape-fill"></path>
+                        <path
+                            d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z"
+                            opacity=".5" class="shape-fill"></path>
+                        <path
+                            d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z"
+                            class="shape-fill"></path>
+                    </svg>
+                </div>
+            </section>
+
+
+
+
+            <section class="details">
+                <h2 class="animate-from-left">Vielsen</h2>
+
+                <img src="../assets/images/rings.png" alt="Rings" class="details-image animate-from-left">
+
+                <div class="details-columns">
+                    <div class="column animate-from-left">
+                        <h3>Hvor og hvornår?</h3>
+                        <p>
+                            Klokken 13.00
                         </p>
-                        <p id="dynamic-text-ref">
-                            Ordsprogenes Bog 18:22
+
+                        <p>
+                            Ho kirke
+                        </p>
+
+                        <p>
+                            <a href="https://maps.google.com/?q=Hovej+21A,+6857+Blåvand" target="_blank">
+                                Hovej 21A, 6857 Blåvand
+                            </a>
                         </p>
                     </div>
+                    <div class="column animate-from-left delay-200">
+                        <h3>Hvad siger biblen?</h3>
+
+                        <div class="quote-wrapper">
+                            <p id="dynamic-text-full">
+                                Den, der finder en hustru, finder lykken og får en nådegave fra Herren.
+                            </p>
+                            <p id="dynamic-text-ref">
+                                Ordsprogenes Bog 18:22
+                            </p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <div class="animate-from-left">
+            <div class="animate-from-left">
 
-        
-        <section class="content2 red">
-            <div class="wave2">
-                <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
-                    <path
-                        d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z"
-                        opacity=".25" class="shape-fill"></path>
-                    <path
-                        d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z"
-                        opacity=".5" class="shape-fill"></path>
-                    <path
-                        d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z"
-                        class="shape-fill"></path>
-                </svg>
-            </div>
-        </section>
 
-        </div>
-        <div class="back">
-
-        
-        <section class="details">
-            <h2 class="animate-from-left delay-200">Kaffe, kage og fest</h2>
-
-            <div class="details-columns">
-                <div class="column animate-from-left">
-                    <img src="../assets/images/coffeeCake.png" alt="CoffeeAndCake" class="details-image">
-                    <p>
-                        Umiddelbart efter vores kirkelige splejsning vil der blive serveret kaffe og kage samt det der er stærkere på Ho Kro kun 200 m fra kirken. 
-                        Hvis man ønsker at overnatte ved Ho Feriecenter er det også et oplagt tidspunkt at tjekke ind. 
-                        Der vil være forskellige små spil man kan fornøjelse med, da flere af os jo kommer fra det sydjyske og ikke Nødvendigvis er de bedste til at samtale.
-                    </p>
-                </div>
-                <div class="column animate-from-left delay-200">
-                    <img src="../assets/images/dinnerParty.png" alt="dinnerParty" class="details-image">
-                    <p>
-                        Når eftermiddagen begynder at gå imod aftenen vil vi sætte os til bords inde på kroen, 
-                        hvor der vil blive serveret både vådt og tørt. 
-                        Senere ryddes bordene og der vil blive budt op til dans.
-                    </p>
-                </div>
-            </div>
+                <section class="content2 red">
+                    <div class="wave2">
+                        <svg data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120"
+                            preserveAspectRatio="none">
+                            <path
+                                d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z"
+                                opacity=".25" class="shape-fill"></path>
+                            <path
+                                d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z"
+                                opacity=".5" class="shape-fill"></path>
+                            <path
+                                d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z"
+                                class="shape-fill"></path>
+                        </svg>
+                    </div>
+                </section>
 
             </div>
-        </section>
-        
+            <div class="back">
 
-    </main>
+
+                <section class="details">
+                    <h2 class="animate-from-left delay-200">Kaffe, kage og fest</h2>
+
+                    <div class="details-columns">
+                        <div class="column animate-from-left">
+                            <img src="../assets/images/coffeeCake.png" alt="CoffeeAndCake" class="details-image">
+
+                            <div class="dynamic-singular">
+                                Umiddelbart efter vores kirkelige splejsning vil der blive serveret kaffe og kage samt
+                                det, der er stærkere på Ho Kro
+                                kun 200 m fra kirken.
+                                Hvis du ønsker at overnatte ved Ho Feriecenter er det også et oplagt tidspunkt at tjekke
+                                ind.
+                                Der vil være forskellige små spil man kan fornøje sig med, da flere af os jo kommer fra
+                                det sydjyske og ikke
+                                nødvendigvis er de bedste til at konversere.
+                            </div>
+
+                            <div class="dynamic-plural">
+                                Umiddelbart efter vores kirkelige splejsning vil der blive serveret kaffe og kage samt
+                                det, der er stærkere på Ho Kro
+                                kun 200 m fra kirken.
+                                Hvis I ønsker at overnatte ved Ho Feriecenter er det også et oplagt tidspunkt at tjekke
+                                ind.
+                                Der vil være forskellige små spil man kan fornøje sig med, da flere af os jo kommer fra
+                                det sydjyske og ikke
+                                nødvendigvis er de bedste til at konversere.
+                            </div>
+
+                        </div>
+                        <div class="column animate-from-left delay-200">
+                            <img src="../assets/images/dinnerParty.png" alt="dinnerParty" class="details-image">
+                            <p>
+                                Når eftermiddagen begynder at gå imod aftenen vil vi sætte os til bords inde på kroen,
+                                hvor der vil blive serveret både vådt og tørt.
+                                Senere ryddes bordene og der vil blive budt op til dans.
+                            </p>
+                        </div>
+                    </div>
+
+            </div>
+            </section>
+        </main>
     </div>
 
     <footer>
         <p>© 2025 Anne & Torben. All rights reserved.</p>
     </footer>
-<script src="../script.js"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", async () => {
-        const params = new URLSearchParams(window.location.search);
-        const uid = params.get("uid");
+    <script src="../script.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const params = new URLSearchParams(window.location.search);
+            const uid = params.get("uid");
 
-        const mainContent = document.getElementById("main-content");
-        const accessDenied = document.getElementById("access-denied");
-        const greetingEl = document.getElementById("greeting");
+            const mainContent = document.getElementById("main-content");
+            const accessDenied = document.getElementById("access-denied");
+            const greetingEl = document.getElementById("greeting");
 
-        // 1. If no UID provided in URL, block immediately
-        if (!uid) {
-            showAccessDenied();
-            return;
-        }
+            // List of Singular Guests
+            const singular = [
+                "A55wFTf", // Peter
+                "58HBunqMnD11aC", // Inger Lise
+                "9jTLnAp", // Mette
+                "9jMQ9Ex", // Maria
+                "3A92UG", // Thea
+                "9cotLEC", // Laura
+                "9QERPZW", // Julie
+                "3w5XWTxE3t", // Maria
+                "fE8UJcoN", // Lærke
+                "3Z8geD6NM2", // Cecilie
+                "e3jiZZYV", // Jesper
+                "8c7ujQg", // Cille
+                "9cosfLp", // Lasse
+                "ZbNnoRLP", // Astrid
+                "3BeNDE", // Ulla
+                "3pc2L4fmoJ", // Joachim
+                "3qL2GLen13", // Jørgen
+                "DT7eM6UY7GE", // Johannes
+                "9PimJu7", // Jakob
+                "2vqB3R", // Knud
+                "3tt3knWMnB", // Lasse
+                "43hxsayMxw", // Peter
+                "2yim4E", // Mads
+                "test" // testperson
+            ];
 
-        try {
-            // 2. Fetch the guest list
-            // Path based on your screenshot: from Brylluppet folder -> up to root -> down to assets
-            const response = await fetch("../assets/guest.json");
-
-            if (!response.ok) {
-                throw new Error("Could not load guest list");
+            // 1. If no UID provided in URL, block immediately
+            if (!uid) {
+                showAccessDenied();
+                return;
             }
 
-            const guests = await response.json();
+            try {
+                // 2. Fetch the guest list
+                const response = await fetch("../assets/guest.json");
 
-            // 3. Check if UID exists in JSON
-            if (guests[uid]) {
-                // VALID USER FOUND
+                if (!response.ok) {
+                    throw new Error("Could not load guest list");
+                }
 
-                // A. Set the greeting name
-                greetingEl.textContent = `Kære ${guests[uid]}!`;
+                const guests = await response.json();
 
-                // B. Update navigation links so they don't lose the UID when clicking
-                document.querySelectorAll("nav.navbar a").forEach(link => {
-                    const url = new URL(link.href, window.location.origin);
-                    url.searchParams.set("uid", uid);
-                    link.href = url.toString();
-                });
+                // 3. Check if UID exists in JSON
+                if (guests[uid]) {
+                    // VALID USER FOUND
 
-                // C. Show the website
-                accessDenied.style.display = "none";
-                mainContent.style.display = "block";
+                    // A. Set the greeting name
+                    if (greetingEl) {
+                        greetingEl.textContent = `Kære ${guests[uid]}!`;
+                    }
 
-            } else {
-                // INVALID UID (e.g. typo or old code)
+                    // B. Update navigation links so they don't lose the UID when clicking
+                    document.querySelectorAll("nav.navbar a").forEach(link => {
+                        try {
+                            const url = new URL(link.href, window.location.origin);
+                            // Only update internal links
+                            if (!link.href.startsWith("mailto") && !link.href.includes("maps.google")) {
+                                url.searchParams.set("uid", uid);
+                                link.href = url.toString();
+                            }
+                        } catch (e) { console.log(e); }
+                    });
+
+                    // --- 4. LOGIC TO SWITCH TEXT (Singular vs Plural) ---
+                    const singularEls = document.querySelectorAll(".dynamic-singular");
+                    const pluralEls = document.querySelectorAll(".dynamic-plural");
+
+                    if (singular.includes(uid)) {
+                        // User is in the singular list -> Show singular, hide plural
+                        singularEls.forEach(el => el.style.display = "block");
+                        pluralEls.forEach(el => el.style.display = "none");
+                    } else {
+                        // User is NOT in the list -> Hide singular, show plural
+                        singularEls.forEach(el => el.style.display = "none");
+                        pluralEls.forEach(el => el.style.display = "block");
+                    }
+
+                    // C. Show the website
+                    accessDenied.style.display = "none";
+                    mainContent.style.display = "block";
+
+                } else {
+                    // INVALID UID (e.g. typo or old code)
+                    showAccessDenied();
+                }
+            } catch (err) {
+                console.error("Security check failed:", err);
                 showAccessDenied();
             }
-        } catch (err) {
-            console.error("Security check failed:", err);
-            // Optional: Show access denied if technical error, or let them in (fail open/close)
-            showAccessDenied();
-        }
 
-        function showAccessDenied() {
-            mainContent.style.display = "none";
-            accessDenied.style.display = "flex"; // Flex to center content
-        }
+            function showAccessDenied() {
+                mainContent.style.display = "none";
+                accessDenied.style.display = "flex";
+            }
 
-        // --- Burger Menu Script (Included here or inside script.js) ---
-        const burgerToggle = document.getElementById("burger-toggle");
-        const navLinks = document.querySelector(".navbar ul");
+            // --- Burger Menu Script ---
+            const burgerToggle = document.getElementById("burger-toggle");
+            const navLinks = document.querySelector(".navbar ul");
 
-        if (burgerToggle && navLinks) {
-            burgerToggle.addEventListener("click", () => {
-                navLinks.classList.toggle("nav-active");
-                burgerToggle.classList.toggle("burger-active");
-            });
+            if (burgerToggle && navLinks) {
+                burgerToggle.addEventListener("click", () => {
+                    navLinks.classList.toggle("nav-active");
+                    burgerToggle.classList.toggle("burger-active");
+                });
 
-            // Close when clicking background
-            navLinks.addEventListener("click", (e) => {
-                if (e.target === navLinks) {
-                    navLinks.classList.remove("nav-active");
-                    burgerToggle.classList.remove("burger-active");
-                }
-            });
-        }
-    });
-</script>
+                // Close when clicking background
+                navLinks.addEventListener("click", (e) => {
+                    if (e.target === navLinks) {
+                        navLinks.classList.remove("nav-active");
+                        burgerToggle.classList.remove("burger-active");
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>

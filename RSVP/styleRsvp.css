@@ -140,6 +140,11 @@ main {
     text-align: center;
 }
 
+.content h2 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
 /* RSVP Form Styles */
 .rsvp-form {
     margin-top: 2rem;
@@ -203,9 +208,8 @@ main {
     background-repeat: no-repeat;
     background-position: center;
     background-size: cover;
-    margin-bottom: -550px;
+    margin-bottom: -600px;
 }
-
 
 .layer1 {
     background-image: url('../assets/layer1.svg');

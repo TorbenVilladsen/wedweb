@@ -360,7 +360,7 @@ width: 100%;
 background-repeat: no-repeat;
 background-position: center;
 background-size: cover;
-margin-bottom: -500px;
+margin-bottom: -600px;
 }
 
 /* 3. Update the Wave Spacer */
@@ -502,12 +502,12 @@ footer {
     }
 
     .spacer {
-        aspect-ratio: 900/1900;
+        aspect-ratio: 900/900;
         width: 100%;
         background-repeat: no-repeat;
         background-position: center;
         background-size: cover;
-        margin-bottom: -700px;
+        margin-bottom: -280px;
     }
     .spacer2 {
         aspect-ratio: 1200/900;

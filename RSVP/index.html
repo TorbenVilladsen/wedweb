@@ -27,6 +27,12 @@
         #main-content {
             display: none;
         }
+
+        /* --- Dynamic Text Styles --- */
+        .dynamic-singular,
+        .dynamic-plural {
+            display: none;
+        }
     </style>
 </head>
 
@@ -66,9 +72,15 @@
             <div class="spacer layer1"></div>
 
             <section class="content">
-                <h1 class="animate-from-left">Répondez s'il vous plaît</h2>
+                <h2 class="animate-from-left">Répondez s'il vous plaît</h2>
+
                 <p class="animate-from-left delay-100">
-                    Ja, det er bare en fancy måde at sige I gerne må give svar om I kommer.
+                    <span class="dynamic-singular">
+                        Ja, det er bare en fancy måde at sige du gerne må give svar om du kommer.
+                    </span>
+                    <span class="dynamic-plural">
+                        Ja, det er bare en fancy måde at sige I gerne må give svar om I kommer.
+                    </span>
                 </p>
 
                 <p class="animate-from-left delay-200">
@@ -84,7 +96,11 @@
                     <textarea id="comment" name="comment" rows="4" placeholder="Skriv din besked her..."></textarea>
 
                     <div class="button-group">
-                        <button type="button" class="accept">Jaaa vi kommer</button>
+                        <button type="button" class="accept">
+                            <span class="dynamic-singular">Jaaa jeg kommer</span>
+                            <span class="dynamic-plural">Jaaa vi kommer</span>
+                        </button>
+
                         <button type="button" class="decline">Desværre ikke</button>
                     </div>
                 </form>
@@ -96,118 +112,171 @@
         </footer>
     </div>
     <script src="../script.js"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", async () => {
-        const params = new URLSearchParams(window.location.search);
-        const uid = params.get("uid");
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const params = new URLSearchParams(window.location.search);
+            const uid = params.get("uid");
 
-        const mainContent = document.getElementById("main-content");
-        const accessDenied = document.getElementById("access-denied");
+            const mainContent = document.getElementById("main-content");
+            const accessDenied = document.getElementById("access-denied");
 
-        // *** YOUR GOOGLE SCRIPT URL ***
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwzBSFMocujtJ1e7K75mdvCNM8sol4CzP8EXI6aJjBqRvsj3Up133uidq_KjdozvOJ8/exec";
+            // List of Singular Guests
+            const singular = [
+                "A55wFTf", // Peter
+                "58HBunqMnD11aC", // Inger Lise
+                "9jTLnAp", // Mette
+                "9jMQ9Ex", // Maria
+                "3A92UG", // Thea
+                "9cotLEC", // Laura
+                "9QERPZW", // Julie
+                "3w5XWTxE3t", // Maria
+                "fE8UJcoN", // Lærke
+                "3Z8geD6NM2", // Cecilie
+                "e3jiZZYV", // Jesper
+                "8c7ujQg", // Cille
+                "9cosfLp", // Lasse
+                "ZbNnoRLP", // Astrid
+                "3BeNDE", // Ulla
+                "3pc2L4fmoJ", // Joachim
+                "3qL2GLen13", // Jørgen
+                "DT7eM6UY7GE", // Johannes
+                "9PimJu7", // Jakob
+                "2vqB3R", // Knud
+                "3tt3knWMnB", // Lasse
+                "43hxsayMxw", // Peter
+                "2yim4E", // Mads
+                "test" // testperson
+            ];
 
-        // --- SECURITY CHECK ---
-        if (!uid) {
-            showAccessDenied();
-            return;
-        }
+            // *** YOUR GOOGLE SCRIPT URL ***
+            const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwzBSFMocujtJ1e7K75mdvCNM8sol4CzP8EXI6aJjBqRvsj3Up133uidq_KjdozvOJ8/exec";
 
-        try {
-            const response = await fetch("../assets/guest.json");
-            if (!response.ok) throw new Error("JSON not found");
+            // --- SECURITY CHECK ---
+            if (!uid) {
+                showAccessDenied();
+                return;
+            }
 
-            const guests = await response.json();
+            try {
+                const response = await fetch("../assets/guest.json");
+                if (!response.ok) throw new Error("JSON not found");
 
-            if (guests[uid]) {
-                // === ACCESS GRANTED ===
-                accessDenied.style.display = "none";
-                mainContent.style.display = "flex";
-                updateLinks(uid);
+                const guests = await response.json();
 
-                // Pass guests to the function
-                setupRSVPButtons(uid, guests);
+                if (guests[uid]) {
+                    // === ACCESS GRANTED ===
 
-            } else {
+                    // 1. Determine if Singular or Plural
+                    const isSingular = singular.includes(uid);
+
+                    // 2. Apply Logic to HTML Elements
+                    const singularEls = document.querySelectorAll(".dynamic-singular");
+                    const pluralEls = document.querySelectorAll(".dynamic-plural");
+
+                    if (isSingular) {
+                        // Show Singular, Hide Plural
+                        singularEls.forEach(el => el.style.display = "inline");
+                        pluralEls.forEach(el => el.style.display = "none");
+                    } else {
+                        // Hide Singular, Show Plural
+                        singularEls.forEach(el => el.style.display = "none");
+                        pluralEls.forEach(el => el.style.display = "inline");
+                    }
+
+                    // 3. Show Content & Update Links
+                    accessDenied.style.display = "none";
+                    mainContent.style.display = "flex";
+                    updateLinks(uid);
+
+                    // 4. Pass boolean 'isSingular' to setup function for the Success Message
+                    setupRSVPButtons(uid, guests, isSingular);
+
+                } else {
+                    showAccessDenied();
+                }
+            } catch (err) {
+                console.error("Verification failed:", err);
                 showAccessDenied();
             }
-        } catch (err) {
-            console.error("Verification failed:", err);
-            showAccessDenied();
-        }
 
-        // --- RSVP FUNCTIONALITY ---
-        function setupRSVPButtons(userId, guestList) {
-            const form = document.querySelector(".rsvp-form");
-            // 1. CAPTURE ORIGINAL HTML
-            // We save exactly how the form looks now so we can restore it later
-            const originalFormHTML = form.innerHTML;
+            // --- RSVP FUNCTIONALITY ---
+            function setupRSVPButtons(userId, guestList, isSingularGuest) {
+                const form = document.querySelector(".rsvp-form");
+                // 1. CAPTURE ORIGINAL HTML
+                const originalFormHTML = form.innerHTML;
 
-            // Storage key for this specific user
-            const storageKey = `rsvp_status_${userId}`;
+                // Storage key for this specific user
+                const storageKey = `rsvp_status_${userId}`;
 
-            // --- SEND LOGIC ---
-            // This function "remembers" the userId forever.
-            const sendRSVP = (answer) => {
-                // Find the comment box (we need to find it again in case form was reset)
-                const currentCommentBox = document.getElementById("comment");
-                const commentValue = currentCommentBox ? currentCommentBox.value : "";
+                // --- SEND LOGIC ---
+                const sendRSVP = (answer) => {
+                    const currentCommentBox = document.getElementById("comment");
+                    const commentValue = currentCommentBox ? currentCommentBox.value : "";
 
-                // Update UI to loading
-                form.innerHTML = "<p style='text-align:center; font-weight:bold; padding:20px;'>Sender dit svar...</p>";
+                    form.innerHTML = "<p style='text-align:center; font-weight:bold; padding:20px;'>Sender dit svar...</p>";
 
-                const guestName = guestList[userId] ? guestList[userId].navn : "Ukendt Gæst";
+                    const guestName = guestList[userId] ? guestList[userId].navn : "Ukendt Gæst";
 
-                const payload = {
-                    uid: userId,     // <--- This variable is locked in and cannot be wrong
-                    name: guestName,
-                    answer: answer,
-                    comment: commentValue
+                    const payload = {
+                        uid: userId,
+                        name: guestName,
+                        answer: answer,
+                        comment: commentValue
+                    };
+
+                    fetch(GOOGLE_SCRIPT_URL, {
+                        method: "POST",
+                        body: JSON.stringify(payload),
+                        headers: { "Content-Type": "text/plain;charset=utf-8" }
+                    })
+                        .then(() => {
+                            localStorage.setItem(storageKey, answer);
+                            showSuccessUI(answer);
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            restoreForm();
+                            alert("Der skete en fejl. Prøv venligst igen.");
+                        });
                 };
 
-                fetch(GOOGLE_SCRIPT_URL, {
-                    method: "POST",
-                    body: JSON.stringify(payload),
-                    headers: { "Content-Type": "text/plain;charset=utf-8" }
-                })
-                    .then(() => {
-                        // Save to storage
-                        localStorage.setItem(storageKey, answer);
-                        // Show success message
-                        showSuccessUI(answer);
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        // If error, restore form so they can try again
-                        restoreForm();
-                        alert("Der skete en fejl. Prøv venligst igen.");
-                    });
-            };
+                // --- UI HELPERS ---
 
-            // --- UI HELPERS ---
+                const restoreForm = () => {
+                    form.innerHTML = originalFormHTML;
 
-            const restoreForm = () => {
-                // 1. Put the HTML back
-                form.innerHTML = originalFormHTML;
+                    // Re-apply singular/plural display logic to the restored button text
+                    const singularEls = form.querySelectorAll(".dynamic-singular");
+                    const pluralEls = form.querySelectorAll(".dynamic-plural");
 
-                // 2. We MUST re-attach the event listeners because the buttons are "new" elements now
-                attachListeners();
-            };
+                    if (isSingularGuest) {
+                        singularEls.forEach(el => el.style.display = "inline");
+                        pluralEls.forEach(el => el.style.display = "none");
+                    } else {
+                        singularEls.forEach(el => el.style.display = "none");
+                        pluralEls.forEach(el => el.style.display = "inline");
+                    }
 
-            const attachListeners = () => {
-                const btnAccept = form.querySelector(".accept");
-                const btnDecline = form.querySelector(".decline");
+                    attachListeners();
+                };
 
-                if (btnAccept) btnAccept.addEventListener("click", () => sendRSVP("JA"));
-                if (btnDecline) btnDecline.addEventListener("click", () => sendRSVP("NEJ"));
-            };
+                const attachListeners = () => {
+                    const btnAccept = form.querySelector(".accept");
+                    const btnDecline = form.querySelector(".decline");
 
-            const showSuccessUI = (answer) => {
-                const message = answer === "JA"
-                    ? "Jubii! Vi glæder os til at se dig/jer! ❤️"
-                    : "Det er vi kede af, men tak for beskeden. ❤️";
+                    if (btnAccept) btnAccept.addEventListener("click", () => sendRSVP("JA"));
+                    if (btnDecline) btnDecline.addEventListener("click", () => sendRSVP("NEJ"));
+                };
 
-                form.innerHTML = `
+                const showSuccessUI = (answer) => {
+                    // Logic for "dig" vs "jer"
+                    const greeting = isSingularGuest ? "dig" : "jer";
+
+                    const message = answer === "JA"
+                        ? `Jubii! Vi glæder os til at se ${greeting}! ❤️`
+                        : "Det er vi kede af, men tak for beskeden. ❤️";
+
+                    form.innerHTML = `
                         <div style='text-align:center; padding: 20px; background-color: #f9f9f9; border-radius: 8px;'>
                             <h3>Tak for dit svar!</h3>
                             <p>${message}</p>
@@ -216,62 +285,59 @@
                             </button>
                         </div>`;
 
-                // Logic for the reset button
-                document.getElementById("reset-rsvp").addEventListener("click", () => {
-                    localStorage.removeItem(storageKey);
-                    restoreForm(); // Restores the form using the logic above
-                });
-            };
+                    document.getElementById("reset-rsvp").addEventListener("click", () => {
+                        localStorage.removeItem(storageKey);
+                        restoreForm();
+                    });
+                };
 
-            // --- INITIALIZATION ---
-
-            // Check if already answered
-            const savedAnswer = localStorage.getItem(storageKey);
-            if (savedAnswer) {
-                showSuccessUI(savedAnswer);
-            } else {
-                attachListeners(); // If not answered, activate buttons
+                // --- INITIALIZATION ---
+                const savedAnswer = localStorage.getItem(storageKey);
+                if (savedAnswer) {
+                    showSuccessUI(savedAnswer);
+                } else {
+                    attachListeners();
+                }
             }
-        }
 
-        // --- HELPER FUNCTIONS ---
-        function showAccessDenied() {
-            mainContent.style.display = "none";
-            accessDenied.style.display = "flex";
-        }
+            // --- HELPER FUNCTIONS ---
+            function showAccessDenied() {
+                mainContent.style.display = "none";
+                accessDenied.style.display = "flex";
+            }
 
-        function updateLinks(validUid) {
-            document.querySelectorAll("a").forEach(link => {
-                const href = link.getAttribute("href");
-                if (!href || href.startsWith("mailto:") || (href.startsWith("http") && !href.includes("index.html"))) return;
-                try {
-                    const url = new URL(link.href, window.location.origin);
-                    url.searchParams.set("uid", validUid);
-                    link.href = url.toString();
-                } catch (e) { console.log("Skipping link:", href); }
-            });
-        }
+            function updateLinks(validUid) {
+                document.querySelectorAll("a").forEach(link => {
+                    const href = link.getAttribute("href");
+                    if (!href || href.startsWith("mailto:") || (href.startsWith("http") && !href.includes("index.html"))) return;
+                    try {
+                        const url = new URL(link.href, window.location.origin);
+                        url.searchParams.set("uid", validUid);
+                        link.href = url.toString();
+                    } catch (e) { console.log("Skipping link:", href); }
+                });
+            }
 
-        // --- BURGER MENU LOGIC ---
-        const burgerToggle = document.getElementById("burger-toggle");
-        const navLinks = document.querySelector(".navbar ul");
+            // --- BURGER MENU LOGIC ---
+            const burgerToggle = document.getElementById("burger-toggle");
+            const navLinks = document.querySelector(".navbar ul");
 
-        if (burgerToggle && navLinks) {
-            const closeMenu = () => {
-                navLinks.classList.remove("nav-active");
-                burgerToggle.classList.remove("burger-active");
-            };
-            const toggleMenu = () => {
-                navLinks.classList.toggle("nav-active");
-                burgerToggle.classList.toggle("burger-active");
-            };
-            burgerToggle.addEventListener("click", toggleMenu);
-            navLinks.addEventListener("click", (e) => {
-                if (e.target === navLinks) closeMenu();
-            });
-        }
-    });
-</script>
+            if (burgerToggle && navLinks) {
+                const closeMenu = () => {
+                    navLinks.classList.remove("nav-active");
+                    burgerToggle.classList.remove("burger-active");
+                };
+                const toggleMenu = () => {
+                    navLinks.classList.toggle("nav-active");
+                    burgerToggle.classList.toggle("burger-active");
+                };
+                burgerToggle.addEventListener("click", toggleMenu);
+                navLinks.addEventListener("click", (e) => {
+                    if (e.target === navLinks) closeMenu();
+                });
+            }
+        });
+    </script>
 </body>
 
 </html>

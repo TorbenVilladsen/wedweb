@@ -78,9 +78,8 @@ main {
     background-repeat: no-repeat;
     background-position: center;
     background-size: cover;
-    margin-bottom: -500px;
+    margin-bottom: -600px;
 }
-
 
 .layer1 {
     background-image: url('../assets/layer1.svg');
@@ -148,6 +147,11 @@ main {
     max-width: 900px;
     margin: auto;
     text-align: center;
+}
+
+.content h2 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
 }
 
 footer {

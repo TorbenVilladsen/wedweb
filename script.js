@@ -66,8 +66,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // 1. CONFIGURATION: Add the UIDs allowed to see the full list here
   // Example: const whitelist = ["uid_mormor", "uid_præst", "12345"];
   const whitelist = [
-    "37KQ9EscC3gdW4kvRRKdN", // Kasper og Julie
-    "9CY4R4oPbTDqZweBEuJrso", // Bente og Kresten
     "7SpaUQnUMvjDqnoLfW", // Gitte og Mads
     "32UWi3NHBLuBAKsHp89pe", // Heidi og Rasmus
     "9wWTECYJ59gyN5G2Mynh5c", // Helene og Rasmus
@@ -88,6 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
     "43hxsayMxw", // Peter
     "3AcYebCBffh8hEr9pNMCU", // Michael og Anja
     "2yim4E", // Mads
+    "test" // testperson
   ];
 
   // 2. Get current UID from URL

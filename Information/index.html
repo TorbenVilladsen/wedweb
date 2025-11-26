@@ -28,6 +28,13 @@
         #main-content {
             display: none;
         }
+
+        /* --- Dynamic Text Styles --- */
+        /* Hidden by default, shown via JS based on guest list */
+        .dynamic-singular,
+        .dynamic-plural {
+            display: none;
+        }
     </style>
 </head>
 
@@ -91,7 +98,8 @@
             <p class="animate-from-left delay-300">
                 Kroen har en specialaftale med Ho Feriecenter,
                 hvorved der kan bookes overnatning for en nat i ferielejlighederne. <br />
-                Der tilbydes tre typer ferielejligheder, der alle indeholder et køkken og badeværelse:
+                Der i aftalen tilbydes tre forskellige størrelser ferielejligheder, der alle indeholder et køkken og
+                badeværelse:
             </p>
 
             <ul class="animate-from-left delay-400">
@@ -115,12 +123,20 @@
                 </li>
             </ul>
 
-            <p class="animate-from-left delay-500">
-                Ønsker man at booke en overnatning, så skal man sende en mail til Ho Kro på
-                <a href="mailto:hokro@hokro.dk">
-                    hokro@hokro.dk.
-                </a>
-            </p>
+            <div class="animate-from-left delay-500">
+                <div class="dynamic-singular">
+                    <p>
+                        Ønsker du at booke en overnatning, så skal du sende en mail til Ho Kro på
+                        <a href="mailto:hokro@hokro.dk">hokro@hokro.dk.</a>
+                    </p>
+                </div>
+                <div class="dynamic-plural">
+                    <p>
+                        Ønsker I at booke en overnatning, så skal I sende en mail til Ho Kro på
+                        <a href="mailto:hokro@hokro.dk">hokro@hokro.dk.</a>
+                    </p>
+                </div>
+            </div>
 
             <p class="animate-from-left delay-600">
                 Hvis man ønsker at overnatte til en overkomlig pris, giver det mening at gå sammen flere om en hytte.
@@ -147,19 +163,34 @@
                 <img src="../assets/images/giftIcon.png" alt="Present Icon">
             </div>
 
-            <p class="animate-from-left delay-200">
-                Selvom jeres deltagelse er en gave i sig selv, vil vi gerne bidrage til at dreje kapitalismens hjul.
-                Derfor ønsker vi os særligt tilskud til oplevelser og ting til at bygge rede af.
-                For mere præcision kan man følge
-                <a href="https://onskeskyen.dk/s/d4xcqs" target="_blank">
-                    linket til vores ønskesky.
-                </a>
-
-            </p>
+            <div class="animate-from-left delay-200">
+                <div class="dynamic-singular">
+                    <p>
+                        Selvom din deltagelse er en gave i sig selv, vil vi gerne bidrage til at dreje kapitalismens
+                        hjul.
+                        Derfor ønsker vi os særligt tilskud til oplevelser og ting til at bygge rede af.
+                        For mere præcision kan man følge
+                        <a href="https://onskeskyen.dk/s/d4xcqs" target="_blank">
+                            linket til vores ønskesky.
+                        </a>
+                    </p>
+                </div>
+                <div class="dynamic-plural">
+                    <p>
+                        Selvom jeres deltagelse er en gave i sig selv, vil vi gerne bidrage til at dreje kapitalismens
+                        hjul.
+                        Derfor ønsker vi os særligt tilskud til oplevelser og ting til at bygge rede af.
+                        For mere præcision kan man følge
+                        <a href="https://onskeskyen.dk/s/d4xcqs" target="_blank">
+                            linket til vores ønskesky.
+                        </a>
+                    </p>
+                </div>
+            </div>
 
         </section>
 
-        
+
 
         <section class="content">
             <h2 class="animate-from-left">
@@ -172,10 +203,10 @@
             </div>
 
             <p class="animate-from-left delay-200">
-                Vi vil elske, at folk vil lave nogle indslag. Til at styre slagets gang har vi allieret os med de
-                bedste.
-                Har man lyst til at bidrage med et indslag, bedes man venligst række ud til en af vores toastmasterer.
-                Vi ser helst taler holdes under ti minutter.
+                Vi vil elske, at folk vil lave nogle indslag. Vi ser helst taler holdes under ti minutter. 
+                Til at styre slagets gang har vi allieret os med de bedste.
+                Har man lyst til at bidrage med et indslag, bedes man venligst række ud til en af vores toastmasterer:
+                
             </p>
         </section>
 
@@ -204,6 +235,7 @@
     <script src="../script.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", () => {
+            // Animation Observer Logic
             const imageContainer = document.querySelector(".image-container");
             if (imageContainer) {
                 const observer = new IntersectionObserver((entries) => {
@@ -216,7 +248,8 @@
                 }, { threshold: 1 });
                 observer.observe(imageContainer);
             }
-        const scrollObserverOptions = {
+
+            const scrollObserverOptions = {
                 threshold: 0.15,
                 rootMargin: "0px 0px -50px 0px"
             };
@@ -224,19 +257,15 @@
             const scrollObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
-                        // Show element
                         entry.target.classList.add('in-view');
                     } else {
-                        // Hide element again (so it re-animates next time)
                         entry.target.classList.remove('in-view');
                     }
                 });
             }, scrollObserverOptions);
 
-            // Select all elements to animate
             const animatedElements = document.querySelectorAll('.animate-from-left');
             animatedElements.forEach(el => scrollObserver.observe(el));
-        
         });
     </script>
 
@@ -245,42 +274,81 @@
             const params = new URLSearchParams(window.location.search);
             const uid = params.get("uid");
 
+            // List of Singular Guests
+            const singular = [
+                "A55wFTf", // Peter
+                "58HBunqMnD11aC", // Inger Lise
+                "9jTLnAp", // Mette
+                "9jMQ9Ex", // Maria
+                "3A92UG", // Thea
+                "9cotLEC", // Laura
+                "9QERPZW", // Julie
+                "3w5XWTxE3t", // Maria
+                "fE8UJcoN", // Lærke
+                "3Z8geD6NM2", // Cecilie
+                "e3jiZZYV", // Jesper
+                "8c7ujQg", // Cille
+                "9cosfLp", // Lasse
+                "ZbNnoRLP", // Astrid
+                "3BeNDE", // Ulla
+                "3pc2L4fmoJ", // Joachim
+                "3qL2GLen13", // Jørgen
+                "DT7eM6UY7GE", // Johannes
+                "9PimJu7", // Jakob
+                "2vqB3R", // Knud
+                "3tt3knWMnB", // Lasse
+                "43hxsayMxw", // Peter
+                "2yim4E", // Mads
+                "test" // testperson
+            ];
+
             const mainContent = document.getElementById("main-content");
             const accessDenied = document.getElementById("access-denied");
 
             // --- SECURITY CHECK ---
 
-            // 1. If no UID in URL, deny access immediately
             if (!uid) {
                 showAccessDenied();
                 return;
             }
 
             try {
-                // 2. Fetch the guest list to verify ID
+                // Fetch guest list
                 const response = await fetch("../assets/guest.json");
                 if (!response.ok) throw new Error("JSON not found");
 
                 const guests = await response.json();
 
-                // 3. Verify if ID exists in the JSON
+                // Verify ID
                 if (guests[uid]) {
                     // === ACCESS GRANTED ===
 
-                    // Show the page content
+                    // 1. Update Links
+                    updateLinks(uid);
+
+                    // 2. Apply Singular/Plural Logic
+                    const singularEls = document.querySelectorAll(".dynamic-singular");
+                    const pluralEls = document.querySelectorAll(".dynamic-plural");
+
+                    if (singular.includes(uid)) {
+                        // Singular Guest: Show "du/din", Hide "I/jeres"
+                        singularEls.forEach(el => el.style.display = "block");
+                        pluralEls.forEach(el => el.style.display = "none");
+                    } else {
+                        // Plural Guest: Hide "du/din", Show "I/jeres"
+                        singularEls.forEach(el => el.style.display = "none");
+                        pluralEls.forEach(el => el.style.display = "block");
+                    }
+
+                    // 3. Show Content
                     accessDenied.style.display = "none";
                     mainContent.style.display = "block";
 
-                    // Update all navigation links to include the UID
-                    updateLinks(uid);
-
                 } else {
-                    // === ACCESS DENIED (Invalid ID) ===
                     showAccessDenied();
                 }
             } catch (err) {
                 console.error("Security verification failed:", err);
-                // In case of technical error, default to Access Denied
                 showAccessDenied();
             }
 
@@ -293,23 +361,16 @@
 
             function updateLinks(validUid) {
                 document.querySelectorAll("a").forEach(link => {
-                    // Skip links that are external (start with http/mailto) 
-                    // BUT allow links that point to our own domain/files
                     const href = link.getAttribute("href");
-
-                    // If it's a mailto or a fully qualified external domain (like google maps), skip it
-                    // Note: We check if it starts with http AND does not contain our own relative paths
+                    // Skip mailto, external links that aren't ours
                     if (!href || href.startsWith("mailto:") || (href.startsWith("http") && !href.includes("index.html"))) {
                         return;
                     }
-
-                    // Create a URL object to safely manipulate params
                     try {
                         const url = new URL(link.href, window.location.origin);
                         url.searchParams.set("uid", validUid);
                         link.href = url.toString();
                     } catch (e) {
-                        // If link parsing fails, ignore
                         console.log("Skipping link:", href);
                     }
                 });
@@ -331,8 +392,6 @@
                 };
 
                 burgerToggle.addEventListener("click", toggleMenu);
-
-                // Close when clicking the overlay background
                 navLinks.addEventListener("click", (e) => {
                     if (e.target === navLinks) {
                         closeMenu();

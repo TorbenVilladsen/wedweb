@@ -148,9 +148,6 @@
                 "test" // testperson
             ];
 
-            // *** YOUR GOOGLE SCRIPT URL ***
-            const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwzBSFMocujtJ1e7K75mdvCNM8sol4CzP8EXI6aJjBqRvsj3Up133uidq_KjdozvOJ8/exec";
-
             // --- SECURITY CHECK ---
             if (!uid) {
                 showAccessDenied();
@@ -198,54 +195,18 @@
                 console.error("Verification failed:", err);
                 showAccessDenied();
             }
-
             // --- RSVP FUNCTIONALITY ---
             function setupRSVPButtons(userId, guestList, isSingularGuest) {
                 const form = document.querySelector(".rsvp-form");
-                // 1. CAPTURE ORIGINAL HTML
                 const originalFormHTML = form.innerHTML;
-
-                // Storage key for this specific user
                 const storageKey = `rsvp_status_${userId}`;
 
-                // --- SEND LOGIC ---
-                const sendRSVP = (answer) => {
-                    const currentCommentBox = document.getElementById("comment");
-                    const commentValue = currentCommentBox ? currentCommentBox.value : "";
-
-                    form.innerHTML = "<p style='text-align:center; font-weight:bold; padding:20px;'>Sender dit svar...</p>";
-
-                    const guestName = guestList[userId] ? guestList[userId].navn : "Ukendt Gæst";
-
-                    const payload = {
-                        uid: userId,
-                        name: guestName,
-                        answer: answer,
-                        comment: commentValue
-                    };
-
-                    fetch(GOOGLE_SCRIPT_URL, {
-                        method: "POST",
-                        body: JSON.stringify(payload),
-                        headers: { "Content-Type": "text/plain;charset=utf-8" }
-                    })
-                        .then(() => {
-                            localStorage.setItem(storageKey, answer);
-                            showSuccessUI(answer);
-                        })
-                        .catch(err => {
-                            console.error(err);
-                            restoreForm();
-                            alert("Der skete en fejl. Prøv venligst igen.");
-                        });
-                };
-
-                // --- UI HELPERS ---
+                // PASTE YOUR GOOGLE SCRIPT URL HERE
+                const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXQNSBodDnHSctoanrbwS9mcvs9-3dfCupqgajxg36_RXTcl7EoQMFnQPCZ9z4IvPs/exec";
 
                 const restoreForm = () => {
                     form.innerHTML = originalFormHTML;
-
-                    // Re-apply singular/plural display logic to the restored button text
+                    // Re-apply logic for singular/plural
                     const singularEls = form.querySelectorAll(".dynamic-singular");
                     const pluralEls = form.querySelectorAll(".dynamic-plural");
 
@@ -256,8 +217,46 @@
                         singularEls.forEach(el => el.style.display = "none");
                         pluralEls.forEach(el => el.style.display = "inline");
                     }
-
                     attachListeners();
+                };
+
+                // Define the sendRSVP function (Now handles the network request)
+                const sendRSVP = (answer) => {
+                    const commentBox = document.getElementById("comment");
+                    const commentText = commentBox ? commentBox.value : "";
+                    const guestName = guestList[userId]; // Get name from JSON
+
+                    // Show loading state (optional but good UX)
+                    const btnGroup = form.querySelector(".button-group");
+                    if (btnGroup) btnGroup.innerHTML = "<p>Sender svar...</p>";
+
+                    // Prepare data
+                    const data = {
+                        uid: userId,
+                        name: guestName,
+                        answer: answer,
+                        comment: commentText
+                    };
+
+                    // Send to Google Sheets
+                    fetch(GOOGLE_SCRIPT_URL, {
+                        method: "POST",
+                        mode: "no-cors", // Important for Google Script
+                        headers: {
+                            "Content-Type": "text/plain;charset=utf-8",
+                        },
+                        body: JSON.stringify(data),
+                    })
+                        .then(() => {
+                            // Save to local storage so they see the success message if they refresh
+                            localStorage.setItem(storageKey, answer);
+                            showSuccessUI(answer);
+                        })
+                        .catch((error) => {
+                            console.error("Error:", error);
+                            alert("Der skete en fejl. Prøv venligst igen.");
+                            restoreForm();
+                        });
                 };
 
                 const attachListeners = () => {
@@ -269,26 +268,27 @@
                 };
 
                 const showSuccessUI = (answer) => {
-                    // Logic for "dig" vs "jer"
                     const greeting = isSingularGuest ? "dig" : "jer";
-
                     const message = answer === "JA"
                         ? `Jubii! Vi glæder os til at se ${greeting}! ❤️`
                         : "Det er vi kede af, men tak for beskeden. ❤️";
 
                     form.innerHTML = `
-                        <div style='text-align:center; padding: 20px; background-color: #f9f9f9; border-radius: 8px;'>
-                            <h3>Tak for dit svar!</h3>
-                            <p>${message}</p>
-                            <button id="reset-rsvp" style="margin-top:15px; font-size:0.8rem; background:none; border:none; text-decoration:underline; cursor:pointer; color:#999;">
-                                Ændre svar?
-                            </button>
-                        </div>`;
+            <div style='text-align:center; padding: 20px; background-color: #f9f9f9; border-radius: 8px;'>
+                <h3>Tak for dit svar!</h3>
+                <p>${message}</p>
+                <button id="reset-rsvp" style="margin-top:15px; font-size:0.8rem; background:none; border:none; text-decoration:underline; cursor:pointer; color:#999;">
+                    Ændre svar?
+                </button>
+            </div>`;
 
-                    document.getElementById("reset-rsvp").addEventListener("click", () => {
-                        localStorage.removeItem(storageKey);
-                        restoreForm();
-                    });
+                    const resetBtn = document.getElementById("reset-rsvp");
+                    if (resetBtn) {
+                        resetBtn.addEventListener("click", () => {
+                            localStorage.removeItem(storageKey);
+                            restoreForm();
+                        });
+                    }
                 };
 
                 // --- INITIALIZATION ---
@@ -299,7 +299,6 @@
                     attachListeners();
                 }
             }
-
             // --- HELPER FUNCTIONS ---
             function showAccessDenied() {
                 mainContent.style.display = "none";

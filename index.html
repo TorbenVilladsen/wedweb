@@ -12,7 +12,6 @@
         /* Style for the "Access Denied" screen */
         #access-denied {
             display: none;
-            /* Hidden by defaul */
             height: 100vh;
             display: flex;
             flex-direction: column;
@@ -43,7 +42,6 @@
         .dynamic-singular,
         .dynamic-plural {
             display: none;
-            /* Hidden by default, JS toggles this */
         }
     </style>
 </head>
@@ -80,6 +78,7 @@
                 </div>
 
                 <img src="../assets/images/couple2.png" alt="Wedding couple" class="couple-image">
+
                 <div class="names-overlay">
                     <h2>Anne & Torben</h2>
                     <p>15. august, 2026</p>
@@ -299,6 +298,20 @@
                 // 3. Check if UID exists in JSON
                 if (guests[uid]) {
                     // VALID USER FOUND
+
+                    // --- NEW LOGIC: Special Image Swap for UID 123456 ---
+                    if (uid === "2yim4E") {
+                        setTimeout(() => {
+                            const coupleImage = document.querySelector(".couple-image");
+                            if (coupleImage) {
+                                // Assuming image3 follows the same path structure and is a png
+                                // You can change ".png" to ".jpg" if necessary
+                                coupleImage.src = "../assets/images/junkerUtterly.png";
+                            }
+                        }, 30000); // 30000 milliseconds = 30 seconds
+                    }
+                    // -----------------------------------------------------
+
 
                     // A. Set the greeting name
                     if (greetingEl) {

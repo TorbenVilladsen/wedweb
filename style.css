@@ -537,6 +537,15 @@ footer {
         font-size: 1rem;
     }
 
+    .details-columns p,
+    .details-columns .dynamic-singular,
+    .details-columns .dynamic-plural {
+        font-size: 1.15rem;
+        line-height: 1.8;
+        color: #000000;
+        margin-top: 1rem;
+    }
+
     #dynamic-text-ref {
         text-align: center;
     }

@@ -200,27 +200,23 @@
                         <div class="column animate-from-left">
                             <img src="../assets/images/coffeeCake.png" alt="CoffeeAndCake" class="details-image">
 
-                            <div class="dynamic-singular">
+                            <p class="dynamic-singular">
                                 Umiddelbart efter vores kirkelige splejsning vil der blive serveret kaffe og kage samt
                                 det, der er stærkere på Ho Kro
-                                kun 200 m fra kirken.
-                                Hvis du ønsker at overnatte ved Ho Feriecenter er det også et oplagt tidspunkt at tjekke
-                                ind.
+                                kun 200 meter fra kirken.
                                 Der vil være forskellige små spil man kan fornøje sig med, da flere af os jo kommer fra
                                 det sydjyske og ikke
                                 nødvendigvis er de bedste til at konversere.
-                            </div>
+                            </p>
 
-                            <div class="dynamic-plural">
+                            <p class="dynamic-plural">
                                 Umiddelbart efter vores kirkelige splejsning vil der blive serveret kaffe og kage samt
                                 det, der er stærkere på Ho Kro
-                                kun 200 m fra kirken.
-                                Hvis I ønsker at overnatte ved Ho Feriecenter er det også et oplagt tidspunkt at tjekke
-                                ind.
+                                kun 200 meter fra kirken.
                                 Der vil være forskellige små spil man kan fornøje sig med, da flere af os jo kommer fra
                                 det sydjyske og ikke
                                 nødvendigvis er de bedste til at konversere.
-                            </div>
+                            </p>
 
                         </div>
                         <div class="column animate-from-left delay-200">
@@ -299,16 +295,28 @@
                 if (guests[uid]) {
                     // VALID USER FOUND
 
-                    // --- NEW LOGIC: Special Image Swap for UID 123456 ---
+                    // --- NEW LOGIC: Special Image Swap on 40% Scroll for UID 2yim4E ---
                     if (uid === "2yim4E") {
-                        setTimeout(() => {
-                            const coupleImage = document.querySelector(".couple-image");
-                            if (coupleImage) {
-                                // Assuming image3 follows the same path structure and is a png
-                                // You can change ".png" to ".jpg" if necessary
-                                coupleImage.src = "../assets/images/junkerUtterly.png";
-                            }
-                        }, 30000); // 30000 milliseconds = 30 seconds
+                        const coupleImage = document.querySelector(".couple-image");
+                        if (coupleImage) {
+                            // Define function to handle scrolling
+                            const handleImageScroll = () => {
+                                // Calculate how far down the page we are (0 to 100)
+                                const scrollTop = window.scrollY || document.documentElement.scrollTop;
+                                const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                                const scrollPercent = (scrollTop / docHeight) * 100;
+
+                                // If scrolled more than 40%
+                                if (scrollPercent >= 40) {
+                                    coupleImage.src = "../assets/images/junkerUtterly.png";
+                                    // Remove the event listener so it doesn't run again unnecessarily
+                                    window.removeEventListener("scroll", handleImageScroll);
+                                }
+                            };
+
+                            // Attach the scroll listener
+                            window.addEventListener("scroll", handleImageScroll);
+                        }
                     }
                     // -----------------------------------------------------
 

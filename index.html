@@ -299,6 +299,10 @@
                     if (uid === "2yim4E") {
                         const coupleImage = document.querySelector(".couple-image");
                         if (coupleImage) {
+                            let revertTimer = null;
+                            const originalSrc = "../assets/images/couple2.png";
+                            const funnySrc = "../assets/images/junkerUtterly.png";
+
                             // Define function to handle scrolling
                             const handleImageScroll = () => {
                                 // Calculate how far down the page we are (0 to 100)
@@ -306,15 +310,42 @@
                                 const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
                                 const scrollPercent = (scrollTop / docHeight) * 100;
 
-                                // If scrolled more than 40%
+                                // --- TRIGGER: Scrolled DOWN past 40% ---
                                 if (scrollPercent >= 40) {
-                                    coupleImage.src = "../assets/images/junkerUtterly.png";
-                                    // Remove the event listener so it doesn't run again unnecessarily
-                                    window.removeEventListener("scroll", handleImageScroll);
+                                    // If there was a pending timer to revert the image, cancel it
+                                    if (revertTimer) {
+                                        clearTimeout(revertTimer);
+                                        revertTimer = null;
+                                    }
+                                    // Change to the funny image if not already
+                                    if (!coupleImage.src.includes("junkerUtterly.png")) {
+                                        coupleImage.src = funnySrc;
+                                    }
+                                }
+                                // --- TRIGGER: Scrolled UP to top 10% ---
+                                else if (scrollPercent <= 10) {
+                                    // Only start the countdown if we are currently showing the funny image
+                                    // and we haven't already started the timer
+                                    if (coupleImage.src.includes("junkerUtterly.png") && !revertTimer) {
+                                        // Start 2 second countdown to revert image
+                                        revertTimer = setTimeout(() => {
+                                            coupleImage.src = originalSrc;
+                                            revertTimer = null;
+                                        }, 1000); // 2000ms = 2 seconds
+                                    }
+                                }
+                                // --- TRIGGER: In between 10% and 40% ---
+                                else {
+                                    // If user leaves the "top zone" before the 2 seconds are up, 
+                                    // we cancel the revert so the image doesn't change while they are reading
+                                    if (revertTimer) {
+                                        clearTimeout(revertTimer);
+                                        revertTimer = null;
+                                    }
                                 }
                             };
 
-                            // Attach the scroll listener
+                            // Attach the scroll listener (we keep it attached to handle the back-and-forth)
                             window.addEventListener("scroll", handleImageScroll);
                         }
                     }

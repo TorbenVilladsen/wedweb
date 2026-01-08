@@ -184,5 +184,5 @@ document.addEventListener("DOMContentLoaded", () => {
   textElements.forEach(el => el.style.transition = "opacity 1s ease");
 
   // Start rotation
-  setInterval(rotatePair, 7000);
+  setInterval(rotatePair, 9000);
 });

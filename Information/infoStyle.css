@@ -4,12 +4,23 @@
     box-sizing: border-box;
 }
 
+:root {
+    --bg: #faf8f4;
+    --text: #3a3535;
+    --text-light: #6b6565;
+    --accent-gold: #c4a265;
+    --accent-sage: #8a9a78;
+    --accent-rose: #c9a4a0;
+    --font-heading: 'Playfair Display', Georgia, serif;
+    --font-body: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+}
+
 body {
-    font-family: "Helvetica Neue", Arial, sans-serif;
-    background: #fafafa;
-    color: #000000;
-    background-color: #e8daf0;
-    line-height: 1.6;
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
 
     display: flex;
     flex-direction: column;
@@ -20,7 +31,48 @@ main {
     flex-grow: 1;
 }
 
+/* =====================
+   DECORATIVE ORNAMENTS
+   ===================== */
+.ornament {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    margin: 0.8rem auto 1.2rem;
+}
 
+.ornament-line {
+    display: block;
+    width: 40px;
+    height: 1px;
+    background: var(--accent-gold);
+    opacity: 0.5;
+}
+
+.ornament-diamond {
+    display: block;
+    width: 5px;
+    height: 5px;
+    background: var(--accent-gold);
+    transform: rotate(45deg);
+    opacity: 0.6;
+    flex-shrink: 0;
+}
+
+.ornament-sm .ornament-line {
+    width: 35px;
+}
+
+.ornament-sm .ornament-diamond {
+    width: 4px;
+    height: 4px;
+}
+
+
+/* =====================
+   HEADER & NAVIGATION
+   ===================== */
 .hero-header {
     position: absolute;
     top: 0;
@@ -51,33 +103,51 @@ main {
 .navbar a {
     color: #fff;
     text-decoration: none;
-    font-weight: 500;
-    font-size: 1.3rem;
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+    font-weight: 300;
+    font-size: 1rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    transition: opacity 0.3s ease;
+    position: relative;
 }
 
+.navbar a::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.8);
+    transition: width 0.4s ease;
+}
+
+.navbar a:hover::after {
+    width: 100%;
+}
+
+.navbar a:hover {
+    text-decoration: none;
+}
 
 .navbar ul {
     list-style: none;
     display: flex;
     justify-content: right;
-    gap: 4rem;
+    gap: 2.5rem;
 }
 
-.navbar a:hover {
-    text-decoration: underline;
-}
-
-.navbar .active a {
-    text-decoration: underline;
+.navbar .active a::after {
+    width: 100%;
 }
 
 .burger-button {
     display: none;
     flex-direction: column;
     justify-content: space-around;
-    width: 30px;
-    height: 24px;
+    width: 28px;
+    height: 22px;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -86,16 +156,15 @@ main {
 }
 
 .burger-line {
-    width: 30px;
-    height: 3px;
+    width: 28px;
+    height: 1.5px;
     background-color: #fff;
     border-radius: 10px;
-    /* CHANGED: Made transition slower */
-    transition: all 0.6s ease-in-out;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .burger-button.burger-active .burger-line:nth-child(1) {
-    transform: translateY(8px) rotate(45deg);
+    transform: translateY(7.5px) rotate(45deg);
 }
 
 .burger-button.burger-active .burger-line:nth-child(2) {
@@ -103,10 +172,13 @@ main {
 }
 
 .burger-button.burger-active .burger-line:nth-child(3) {
-    transform: translateY(-8px) rotate(-45deg);
+    transform: translateY(-7.5px) rotate(-45deg);
 }
 
 
+/* =====================
+   CONTENT SECTIONS
+   ===================== */
 .content {
     padding: 7rem 0rem 0rem 0rem;
     max-width: 900px;
@@ -117,24 +189,27 @@ main {
 .tooltip {
     position: relative;
     cursor: pointer;
+    border-bottom: 1px dashed var(--accent-gold);
 }
 
 .tooltiptext {
     visibility: hidden;
     opacity: 0;
-    width: 210px;
+    width: 220px;
     background-color: #fff;
-    color: #333;
+    color: var(--text);
     text-align: left;
-    border-radius: 8px;
-    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
     position: absolute;
     z-index: 15;
     bottom: 125%;
     left: 50%;
     transform: translateX(-50%);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
     transition: opacity 0.3s ease, visibility 0.3s ease;
+    font-size: 0.88rem;
+    line-height: 1.7;
 }
 
 .tooltiptext::after {
@@ -155,35 +230,53 @@ main {
 
 
 .content a {
-    color: #333 !important;
-    text-decoration: underline;
-    padding-bottom: 2px;
+    color: var(--text) !important;
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent-gold);
+    padding-bottom: 1px;
+    transition: border-color 0.3s ease;
 }
 
 .content a:hover {
-    color: #333 !important;
-    border-bottom-color: #555;
-    text-decoration: underline;
+    color: var(--text) !important;
+    border-bottom-color: var(--text);
 }
 
 .content ul {
-    list-style-type: disc;
+    list-style-type: none;
     list-style-position: outside;
-    margin: 1rem 0;
+    margin: 1.2rem 0;
 
     display: inline-block;
     text-align: left;
-    padding-left: 40px;
+    padding-left: 0;
 }
 
 .content li {
-    margin: 0.5rem 0;
-    line-height: 1.6;
+    margin: 0.6rem 0;
+    line-height: 1.7;
+    padding-left: 1.2rem;
+    position: relative;
+}
+
+.content li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.7em;
+    width: 5px;
+    height: 5px;
+    background: var(--accent-gold);
+    transform: rotate(45deg);
+    opacity: 0.6;
 }
 
 .content h2 {
-    font-size: 2rem;
-    margin-bottom: 1rem;
+    font-family: var(--font-heading);
+    font-size: 2.4rem;
+    font-weight: 400;
+    margin-bottom: 0.3rem;
+    letter-spacing: 1px;
 }
 
 .iconImage-container {
@@ -191,32 +284,37 @@ main {
     justify-content: center;
     align-items: center;
     gap: 2.5rem;
-    margin-top: 0.8rem;
-    margin-bottom: 1rem;
+    margin-top: 0.5rem;
+    margin-bottom: 1.5rem;
 }
 
 .iconImage-container img {
-    width: 120px;
+    width: 100px;
     height: auto;
     object-fit: contain;
+    opacity: 0.75;
+    transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.iconImage-container img:hover {
+    opacity: 1;
+    transform: scale(1.08);
+}
+
+
+/* =====================
+   BOXER / IMAGE SECTION
+   ===================== */
 .image-slide-section {
     position: relative;
     width: 100%;
     height: 900px;
-
-    /* CRITICAL: Changed from hidden to visible so images can overlap the wave */
     overflow: visible;
-
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #fafafa;
+    background-color: var(--bg);
     margin-top: 6rem;
-    background-color: #e8daf0;
-
-    /* Do NOT add a z-index here, or it will trap the images inside */
 }
 
 .image-container {
@@ -224,8 +322,6 @@ main {
     width: 1200px;
     max-width: 95%;
     height: 800px;
-
-    /* Highest priority - puts boxers on top of everything */
     z-index: 20;
 }
 
@@ -237,8 +333,8 @@ main {
     height: 100%;
     object-fit: cover;
     z-index: 1;
-    border-radius: 24px;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 }
 
 
@@ -247,7 +343,6 @@ main {
     top: 35%;
     width: 65%;
     height: 65%;
-
     opacity: 0;
     transform-origin: center;
     z-index: 2;
@@ -258,7 +353,6 @@ main {
     top: 65%;
     left: 55%;
     transform: translateX(-50%);
-
     width: 60%;
     height: auto;
     object-fit: contain;
@@ -268,7 +362,6 @@ main {
 .boxer-image {
     width: 100%;
     height: 100%;
-
     object-fit: contain;
     border-radius: 24px;
 }
@@ -354,140 +447,178 @@ main {
     }
 }
 
+
+/* =====================
+   SPACERS / WAVES
+   ===================== */
 .spacer {
-aspect-ratio: 900/300;
-width: 100%;
-background-repeat: no-repeat;
-background-position: center;
-background-size: cover;
-margin-bottom: -600px;
+    aspect-ratio: 900/300;
+    width: 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+    margin-bottom: -600px;
 }
 
-/* 3. Update the Wave Spacer */
 .spacer2 {
     aspect-ratio: 1100/300;
     width: 100%;
     background-repeat: no-repeat;
     background-position: center;
     background-size: cover;
-
-    /* Pull the wave UP so it covers the bottom of the purple section */
     margin-top: -250px;
-
-    /* RELATIVE POSITION is required for z-index to work */
     position: relative;
-
-    /* Middle priority: Above background (0), but below Boxers (20) */
     z-index: 10;
-
-    /* Optional: Ensures the invisible box of the wave doesn't block clicks */
     pointer-events: none;
 }
 
 .layer1 {
-background-image: url('../assets/layer1.svg');
+    background-image: url('../assets/layer1.svg');
 }
 
 .layer2 {
-background-image: url('../assets/layer2.svg');
+    background-image: url('../assets/layer2.svg');
 }
 
+
+/* =====================
+   FOOTER
+   ===================== */
 footer {
     text-align: center;
-    background: #000000;
-    color: #fff;
-    padding: 1rem;
+    background: #3a3535;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 2rem 1.5rem;
+    font-size: 0.8rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    font-family: var(--font-heading);
 }
 
 
+/* =====================
+   RESPONSIVE
+   ===================== */
 @media (max-width: 1024px) {
 
     .hero-header {
         position: absolute;
-        padding: 1rem 2rem;
+        padding: 0.8rem 1rem;
     }
 
     .header-icon {
-        height: 30px;
+        height: 28px;
     }
 
     .burger-button {
         display: flex;
         position: absolute;
-        top: 1rem;
-        right: 2rem;
+        top: 0.8rem;
+        right: 1rem;
     }
 
     .navbar ul {
-        /* CHANGED: Swapped 'display' for 'opacity' to enable fading */
-        /* display: none; */
         opacity: 0;
         visibility: hidden;
-        transition: opacity 0.6s ease, visibility 0.6s ease;
-
+        transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         display: flex;
-        /* Keep flex properties */
         position: fixed;
         top: 0;
         left: 0;
         width: 100vw;
         height: 100vh;
-
         flex-direction: column;
         justify-content: flex-start;
-        padding-top: 20vh;
+        padding-top: 18vh;
         align-items: center;
-        gap: 2rem;
-
-        backdrop-filter: blur(15px);
+        gap: 1.8rem;
+        background: rgba(58, 53, 53, 0.4);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
         z-index: 1000;
     }
 
     .navbar ul.nav-active {
-        /* CHANGED: Toggle opacity/visibility instead of display */
-        /* display: flex; */
         opacity: 1;
         visibility: visible;
     }
 
     .navbar a {
-        font-size: 1.5rem;
+        font-size: 1.2rem;
         color: #fff;
         text-shadow: none;
+        letter-spacing: 2px;
+    }
+
+    .navbar a::after {
+        display: none;
     }
 
     .content {
-        padding: 7rem 1rem 0 1rem;
+        padding: 5rem 1.2rem 0 1.2rem;
         max-width: 100%;
     }
 
+    .content:first-of-type {
+        padding-top: 7rem;
+    }
+
     .content h2 {
-        font-size: 2.2rem;
+        font-size: 1.8rem;
+    }
+
+    .ornament {
+        margin: 0.5rem auto 0.8rem;
+    }
+
+    .ornament-line {
+        width: 30px;
+    }
+
+    .ornament-diamond {
+        width: 4px;
+        height: 4px;
+    }
+
+    .iconImage-container {
+        gap: 1.5rem;
+        margin-bottom: 1rem;
     }
 
     .iconImage-container img {
-        width: 80px;
+        width: 60px;
     }
 
     .content p,
     .content li {
-        font-size: 1rem;
+        font-size: 0.95rem;
+        line-height: 1.7;
     }
 
     .content ul {
-        padding-left: 25px;
+        padding-left: 0;
     }
 
+    /* Tooltip: tap-friendly */
+    .tooltip {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .tooltiptext {
+        width: 200px;
+        font-size: 0.82rem;
+        padding: 0.8rem 1rem;
+    }
 
     .image-slide-section {
         overflow: visible;
-        height: 70vh;
+        height: 55vh;
         margin-top: 2rem;
     }
 
     .image-container {
         width: 95vw;
-        height: 60vh;
+        height: 50vh;
     }
 
     .overlay-image {
@@ -497,8 +628,8 @@ footer {
 
     .boxer-group {
         top: 40%;
-        height: 60%;
-        width: 65%;
+        height: 55%;
+        width: 60%;
     }
 
     .spacer {
@@ -516,8 +647,6 @@ footer {
         background-repeat: no-repeat;
         background-position: center;
         background-size: cover;
-
-        /* Adjust overlap for mobile screens */
         margin-top: -150px;
         position: relative;
         z-index: 10;
@@ -526,38 +655,57 @@ footer {
     .layer1 {
         background-image: url('../assets/layer1.svg');
     }
- 
+
     .layer2 {
         background-image: url('../assets/layer2.svg');
     }
 
     footer {
-        text-align: center;
-        background: #000000;
-        color: #fff;
-        padding: 1rem;
+        padding: 1.5rem 1rem;
+        font-size: 0.7rem;
+        letter-spacing: 2px;
     }
-
 }
 
-/* --- SCROLL ANIMATION STYLES --- */
+/* Small phones */
+@media (max-width: 400px) {
+    .content h2 {
+        font-size: 1.5rem;
+    }
 
-/* Initial state: Hidden and pushed left */
+    .content p,
+    .content li {
+        font-size: 0.9rem;
+    }
+
+    .iconImage-container img {
+        width: 50px;
+    }
+
+    .image-slide-section {
+        height: 45vh;
+    }
+
+    .image-container {
+        height: 40vh;
+    }
+}
+
+/* =====================
+   SCROLL ANIMATIONS
+   ===================== */
 .animate-from-left {
     opacity: 0;
-    transform: translateX(-50px);
-    /* Smooth transition for appear and disappear */
-    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    transform: translateY(25px);
+    transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: opacity, transform;
 }
 
-/* State when visible */
 .animate-from-left.in-view {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0);
 }
 
-/* Optional delay for a cascading effect (e.g., icons appear after header) */
 .delay-100 {
     transition-delay: 0.1s;
 }
@@ -587,7 +735,6 @@ footer {
     transition-delay: 0.8s;
 }
 
-/* Prevent horizontal scrollbar during animation */
 body,
 html {
     overflow-x: hidden;

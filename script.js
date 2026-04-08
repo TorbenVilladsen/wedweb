@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   // --- Countdown Logic ---
   const countdown = document.getElementById("countdown");
-  const targetDate = new Date("August 15, 2026 14:00:00").getTime();
+  const targetDate = new Date("August 15, 2026 13:00:00").getTime();
   let timer; // Define timer variable scope
 
   function updateCountdown() {
@@ -19,7 +19,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-    if (countdown) countdown.textContent = `${days}d ${hours}t ${minutes}m ${seconds}s`;
+    if (countdown) {
+      const isMobile = window.innerWidth <= 1024;
+      if (isMobile) {
+        countdown.textContent = `${days}d · ${hours}t · ${minutes}m · ${seconds}s`;
+      } else {
+        countdown.textContent = `${days} dage  ·  ${hours} timer  ·  ${minutes} min  ·  ${seconds} sek`;
+      }
+    }
   }
 
   if (countdown) {
@@ -162,27 +169,37 @@ document.addEventListener("DOMContentLoaded", () => {
   let index = 0;
   const textElements = [dynamicTextFull, dynamicTextRef];
 
-  function rotatePair() {
-    index = (index + 1) % pairs.length;
-
-    // Apply transition and update text
-    textElements.forEach((el) => {
-      el.style.opacity = 0; // Fade out
-    });
-
-    setTimeout(() => {
-      dynamicTextFull.textContent = pairs[index][0];
-      dynamicTextRef.textContent = pairs[index][1];
-
-      textElements.forEach(el => {
-        el.style.opacity = 1; // Fade in
-      });
-    }, 1000);
+  function getDuration(text) {
+    const len = text.length;
+    const min = 7000;
+    const max = 14000;
+    return Math.round(min + (max - min) * Math.min(len / 350, 1));
   }
 
-  // Set up transition property 
+  function scheduleNext() {
+    const duration = getDuration(pairs[index][0]);
+    setTimeout(() => {
+      textElements.forEach((el) => {
+        el.style.opacity = 0;
+      });
+
+      setTimeout(() => {
+        index = (index + 1) % pairs.length;
+        dynamicTextFull.textContent = pairs[index][0];
+        dynamicTextRef.textContent = pairs[index][1];
+
+        textElements.forEach(el => {
+          el.style.opacity = 1;
+        });
+
+        scheduleNext();
+      }, 1000);
+    }, duration);
+  }
+
+  // Set up transition property
   textElements.forEach(el => el.style.transition = "opacity 1s ease");
 
   // Start rotation
-  setInterval(rotatePair, 9000);
+  scheduleNext();
 });

@@ -323,12 +323,12 @@ html {
     opacity: 0;
     transform: translateY(25px);
     transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: opacity, transform;
 }
 
 .animate-from-left.in-view {
     opacity: 1;
     transform: translateY(0);
+    will-change: auto;
 }
 
 .delay-100 {

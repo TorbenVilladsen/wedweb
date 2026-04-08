@@ -8,7 +8,8 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"></noscript>
     <link rel="stylesheet" href="infoStyle.css">
     <link rel="icon" type="image/x-icon" href="../assets/images/logo.ico">
 
@@ -52,7 +53,7 @@
     <div id="main-content">
         <div class="hero-header">
             <a href="../" class="header-icon-link">
-                <img src="../assets/images/logo.png" alt="Site Icon" class="header-icon">
+                <img src="../assets/images/logo.webp" alt="Site Icon" class="header-icon" width="1098" height="1330">
             </a>
 
             <nav class="navbar">
@@ -84,8 +85,8 @@
             </div>
 
             <div class="iconImage-container animate-from-left delay-100">
-                <img src="../assets/images/bedIcon.png" alt="Bed Icon">
-                <img src="../assets/images/moonIcon.png" alt="Moon Icon">
+                <img src="../assets/images/bedIcon.webp" alt="Bed Icon" loading="lazy" width="1523" height="1330">
+                <img src="../assets/images/moonIcon.webp" alt="Moon Icon" loading="lazy" width="1280" height="1330">
             </div>
 
             <p class="animate-from-left delay-200">
@@ -179,8 +180,8 @@
             </div>
 
             <div class="iconImage-container animate-from-left delay-100">
-                <img src="../assets/images/skyIcon.png" alt="Cloud Icon">
-                <img src="../assets/images/giftIcon.png" alt="Present Icon">
+                <img src="../assets/images/skyIcon.webp" alt="Cloud Icon" loading="lazy" width="1350" height="1330">
+                <img src="../assets/images/giftIcon.webp" alt="Present Icon" loading="lazy" width="1177" height="1330">
             </div>
 
             <div class="animate-from-left delay-200">
@@ -223,8 +224,8 @@
             </div>
 
             <div class="iconImage-container animate-from-left delay-100">
-                <img src="../assets/images/micIcon.png" alt="Mic Icon">
-                <img src="../assets/images/maskIcon.png" alt="Mask Icon">
+                <img src="../assets/images/micIcon.webp" alt="Mic Icon" loading="lazy" width="1174" height="1330">
+                <img src="../assets/images/maskIcon.webp" alt="Mask Icon" loading="lazy" width="2076" height="1330">
             </div>
 
             <p class="animate-from-left delay-200">
@@ -237,14 +238,14 @@
 
         <section class="image-slide-section">
             <div class="image-container">
-                <img src="../assets/images/boxRing.png" alt="Base Image" class="base-image">
-                <img src="../assets/images/statsShort.png" alt="Overlay Image" class="overlay-image">
+                <img src="../assets/images/boxRing.webp" alt="Base Image" class="base-image" loading="lazy" width="1024" height="1024">
+                <img src="../assets/images/statsShort.webp" alt="Overlay Image" class="overlay-image" loading="lazy" width="800" height="186">
                 <div class="boxer-group left-group">
-                    <img src="../assets/images/mikkelBoxer.png" alt="Left Boxer" class="boxer-image">
+                    <img src="../assets/images/mikkelBoxer.webp" alt="Left Boxer" class="boxer-image" loading="lazy" width="954" height="1330">
                 </div>
 
                 <div class="boxer-group right-group">
-                    <img src="../assets/images/borkBeats.png" alt="Right Boxer" class="boxer-image">
+                    <img src="../assets/images/borkBeats.webp" alt="Right Boxer" class="boxer-image" loading="lazy" width="889" height="1330">
                 </div>
             </div>
         </section>
@@ -398,7 +399,7 @@
                         const overlayImage = document.querySelector(".overlay-image");
                         if (overlayImage) {
                             // !!! IMPORTANT: CHANGE THIS FILENAME TO YOUR NEW IMAGE !!!
-                            overlayImage.src = "../assets/images/stats.png";
+                            overlayImage.src = "../assets/images/stats.webp";
                         }
                     }
 

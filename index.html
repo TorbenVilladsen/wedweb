@@ -7,7 +7,8 @@
     <title>Anne & Torbens bryllup</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"></noscript>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/x-icon" href="../assets/images/logo.ico">
 
@@ -41,6 +42,35 @@
             display: none;
         }
 
+        /* Loading skeleton */
+        #loading-skeleton {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: #faf8f4;
+            font-family: 'Inter', sans-serif;
+            color: #6b6565;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+
+        #loading-skeleton .spinner {
+            width: 28px;
+            height: 28px;
+            border: 2px solid #c4a265;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 1.2rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         /* Classes for dynamic text switching */
         .dynamic-singular,
         .dynamic-plural {
@@ -50,6 +80,11 @@
 </head>
 
 <body>
+
+    <div id="loading-skeleton">
+        <div class="spinner"></div>
+        <span>Indlæser...</span>
+    </div>
 
     <div id="access-denied" style="display:none;">
         <h1>Invitation påkrævet</h1>
@@ -80,7 +115,7 @@
                     </nav>
                 </div>
 
-                <img src="../assets/images/couple2.png" alt="Wedding couple" class="couple-image">
+                <img src="../assets/images/couple2.webp" alt="Wedding couple" class="couple-image" width="1920" height="2560" fetchpriority="high">
 
                 <div class="hero-gradient"></div>
                 <div class="names-overlay">
@@ -155,7 +190,7 @@
                     <span class="ornament-line"></span>
                 </div>
 
-                <img src="../assets/images/rings.png" alt="Rings" class="details-image animate-from-left">
+                <img src="../assets/images/rings.webp" alt="Rings" class="details-image animate-from-left" loading="lazy" width="800" height="221">
 
                 <div class="details-columns">
                     <div class="column animate-from-left">
@@ -222,7 +257,7 @@
 
                     <div class="details-columns">
                         <div class="column animate-from-left">
-                            <img src="../assets/images/coffeeCake.png" alt="CoffeeAndCake" class="details-image">
+                            <img src="../assets/images/coffeeCake.webp" alt="CoffeeAndCake" class="details-image" loading="lazy" width="800" height="288">
 
                             <p class="dynamic-singular">
                                 Umiddelbart efter vores kirkelige splejsning vil der blive serveret kaffe og kage samt
@@ -244,7 +279,7 @@
 
                         </div>
                         <div class="column animate-from-left delay-200">
-                            <img src="../assets/images/dinnerParty.png" alt="dinnerParty" class="details-image">
+                            <img src="../assets/images/dinnerParty.webp" alt="dinnerParty" class="details-image" loading="lazy" width="800" height="288">
                             <p>
                                 Når eftermiddagen begynder at gå imod aftenen vil vi sætte os til bords inde på kroen,
                                 hvor der vil blive serveret både vådt og tørt.
@@ -270,6 +305,7 @@
 
             const mainContent = document.getElementById("main-content");
             const accessDenied = document.getElementById("access-denied");
+            const loadingSkeleton = document.getElementById("loading-skeleton");
             const greetingEl = document.getElementById("greeting");
 
             // List of Singular Guests
@@ -325,8 +361,8 @@
                         const coupleImage = document.querySelector(".couple-image");
                         if (coupleImage) {
                             let revertTimer = null;
-                            const originalSrc = "../assets/images/couple2.png";
-                            const funnySrc = "../assets/images/junkerUtterly.png";
+                            const originalSrc = "../assets/images/couple2.webp";
+                            const funnySrc = "../assets/images/junkerUtterly.webp";
 
                             // Define function to handle scrolling
                             const handleImageScroll = () => {
@@ -343,7 +379,7 @@
                                         revertTimer = null;
                                     }
                                     // Change to the funny image if not already
-                                    if (!coupleImage.src.includes("junkerUtterly.png")) {
+                                    if (!coupleImage.src.includes("junkerUtterly.webp")) {
                                         coupleImage.src = funnySrc;
                                     }
                                 }
@@ -351,7 +387,7 @@
                                 else if (scrollPercent <= 10) {
                                     // Only start the countdown if we are currently showing the funny image
                                     // and we haven't already started the timer
-                                    if (coupleImage.src.includes("junkerUtterly.png") && !revertTimer) {
+                                    if (coupleImage.src.includes("junkerUtterly.webp") && !revertTimer) {
                                         // Start 2 second countdown to revert image
                                         revertTimer = setTimeout(() => {
                                             coupleImage.src = originalSrc;
@@ -409,6 +445,7 @@
                     }
 
                     // C. Show the website
+                    loadingSkeleton.style.display = "none";
                     accessDenied.style.display = "none";
                     mainContent.style.display = "block";
 
@@ -422,6 +459,7 @@
             }
 
             function showAccessDenied() {
+                loadingSkeleton.style.display = "none";
                 mainContent.style.display = "none";
                 accessDenied.style.display = "flex";
             }

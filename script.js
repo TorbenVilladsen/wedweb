@@ -55,14 +55,21 @@ document.addEventListener("DOMContentLoaded", () => {
   const animatedElements = document.querySelectorAll('.animate-from-left');
   animatedElements.forEach(el => observer.observe(el));
 
-  // --- Navbar Scroll Logic ---
-  window.addEventListener("scroll", () => {
-    const nav = document.querySelector(".navbar");
-    if (nav) {
-      if (window.scrollY > 50) nav.classList.add("scrolled");
-      else nav.classList.remove("scrolled");
-    }
-  });
+  // --- Navbar Scroll Logic (throttled with rAF) ---
+  let navScrollTicking = false;
+  const nav = document.querySelector(".navbar");
+  if (nav) {
+    window.addEventListener("scroll", () => {
+      if (!navScrollTicking) {
+        navScrollTicking = true;
+        requestAnimationFrame(() => {
+          if (window.scrollY > 50) nav.classList.add("scrolled");
+          else nav.classList.remove("scrolled");
+          navScrollTicking = false;
+        });
+      }
+    });
+  }
 
   // --- Dynamic Text Rotation Logic ---
   const dynamicTextFull = document.getElementById("dynamic-text-full");

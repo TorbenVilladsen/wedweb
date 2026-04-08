@@ -5,18 +5,70 @@
 }
 
 :root {
-    --waveC1: #9aa28b;
-    --waveC2: #009473;
+    --waveC1: #a3aa8f;
+    --waveC2: #6b8f7b;
+    --bg: #faf8f4;
+    --bg-warm: #f5f0ea;
+    --text: #3a3535;
+    --text-light: #6b6565;
+    --accent-gold: #c4a265;
+    --accent-sage: #8a9a78;
+    --accent-rose: #c9a4a0;
+    --font-heading: 'Playfair Display', Georgia, serif;
+    --font-body: 'Inter', 'Helvetica Neue', Arial, sans-serif;
 }
 
 body {
-    font-family: "Helvetica Neue", Arial, sans-serif;
-    background: #fafafa;
-    color: #000000;
-    background-color: #e8daf0;
-    line-height: 1.6;
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
 }
 
+/* =====================
+   DECORATIVE ORNAMENTS
+   ===================== */
+.ornament {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    margin: 1rem auto;
+}
+
+.ornament-line {
+    display: block;
+    width: 60px;
+    height: 1px;
+    background: var(--accent-gold);
+    opacity: 0.6;
+}
+
+.ornament-diamond {
+    display: block;
+    width: 7px;
+    height: 7px;
+    background: var(--accent-gold);
+    transform: rotate(45deg);
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
+.ornament-sm .ornament-line {
+    width: 40px;
+}
+
+.ornament-sm .ornament-diamond {
+    width: 5px;
+    height: 5px;
+}
+
+
+/* =====================
+   HEADER & NAVIGATION
+   ===================== */
 .hero-header {
     position: absolute;
     top: 0;
@@ -26,15 +78,31 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 4rem;
+    padding: 1.5rem 4rem;
 }
 
 .banner {
     text-align: left;
-    font-size: 1.5rem;
-    font-weight: bold;
+    font-size: 0.8rem;
+    font-weight: 400;
+    font-family: var(--font-body);
     color: #fff;
-    text-shadow: 0 5px 16px rgba(0, 0, 0, 1);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 0.55rem 1.4rem;
+    border-radius: 100px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.banner h1 {
+    font-size: inherit;
+    font-weight: inherit;
+    letter-spacing: inherit;
 }
 
 .navbar {
@@ -45,24 +113,44 @@ body {
 .navbar a {
     color: #fff;
     text-decoration: none;
-    font-weight: 500;
-    font-size: 1.3rem;
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+    font-weight: 300;
+    font-size: 1rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    transition: opacity 0.3s ease;
+    position: relative;
+}
+
+.navbar a::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.8);
+    transition: width 0.4s ease;
+}
+
+.navbar a:hover::after {
+    width: 100%;
+}
+
+.navbar a:hover {
+    text-decoration: none;
+    opacity: 0.9;
 }
 
 .navbar ul {
     list-style: none;
     display: flex;
     justify-content: right;
-    gap: 4rem;
+    gap: 2.5rem;
 }
 
-.navbar a:hover {
-    text-decoration: underline;
-}
-
-.navbar .active a {
-    text-decoration: underline;
+.navbar .active a::after {
+    width: 100%;
 }
 
 /* --- Burger Button Styles --- */
@@ -70,8 +158,8 @@ body {
     display: none;
     flex-direction: column;
     justify-content: space-around;
-    width: 30px;
-    height: 24px;
+    width: 28px;
+    height: 22px;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -80,17 +168,15 @@ body {
 }
 
 .burger-line {
-    width: 30px;
-    height: 3px;
+    width: 28px;
+    height: 1.5px;
     background-color: #fff;
     border-radius: 10px;
-    /* CHANGED: Made transition slower */
-    transition: all 0.6s ease-in-out;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* --- Burger "X" Animation --- */
 .burger-button.burger-active .burger-line:nth-child(1) {
-    transform: translateY(8px) rotate(45deg);
+    transform: translateY(7.5px) rotate(45deg);
 }
 
 .burger-button.burger-active .burger-line:nth-child(2) {
@@ -98,14 +184,13 @@ body {
 }
 
 .burger-button.burger-active .burger-line:nth-child(3) {
-    transform: translateY(-8px) rotate(-45deg);
+    transform: translateY(-7.5px) rotate(-45deg);
 }
 
-/* --- End of Burger Styles --- */
 
-
-
-/* Hero image and overlay */
+/* =====================
+   HERO SECTION
+   ===================== */
 .hero {
     position: relative;
     text-align: center;
@@ -117,6 +202,19 @@ body {
     height: auto;
     max-height: 150vh;
     object-fit: cover;
+    display: block;
+}
+
+/* Soft gradient at bottom of hero for smooth transition */
+.hero-gradient {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 30%;
+    background: linear-gradient(to top, rgba(163, 170, 143, 0.5) 0%, transparent 100%);
+    z-index: 2;
+    pointer-events: none;
 }
 
 .names-overlay {
@@ -125,58 +223,132 @@ body {
     left: 50%;
     transform: translateX(-50%);
     color: white;
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+    text-shadow: 0 3px 24px rgba(0, 0, 0, 0.4);
     width: 90%;
+    z-index: 3;
+}
+
+.names-pre {
+    font-family: var(--font-heading);
+    font-style: italic;
+    font-size: 1.2rem;
+    font-weight: 400;
+    letter-spacing: 3px;
+    text-transform: lowercase;
+    opacity: 0.9;
+    margin-bottom: 0.3rem;
 }
 
 .names-overlay h2 {
-    font-size: 7rem;
-    margin-bottom: 0.5rem;
+    font-family: var(--font-heading);
+    font-size: 6rem;
+    font-weight: 400;
+    margin-bottom: 0;
+    letter-spacing: 3px;
+}
+
+.names-overlay .amp {
+    font-family: var(--font-heading);
+    font-style: italic;
+    font-weight: 400;
+    opacity: 0.85;
+}
+
+.names-overlay .ornament {
+    margin: 0.8rem auto;
+}
+
+.names-overlay .ornament-line {
+    background: rgba(255, 255, 255, 0.6);
+    width: 50px;
+}
+
+.names-overlay .ornament-diamond {
+    background: rgba(255, 255, 255, 0.7);
 }
 
 .names-overlay p {
-    font-size: 3.5rem;
+    font-family: var(--font-body);
+    font-size: 1.1rem;
+    font-weight: 300;
+    letter-spacing: 6px;
+    text-transform: uppercase;
 }
 
+
+/* =====================
+   GREETING / CONTENT
+   ===================== */
 .content {
     position: relative;
-    /* CRITICAL: Anchors the absolute wave inside */
-    padding: 3rem 2rem;
-    /* Add extra padding at bottom so text doesn't overlap the wave */
+    padding: 4rem 2rem;
     max-width: 100%;
     margin: auto;
     text-align: center;
     display: flex;
     flex-direction: column;
 }
-
-.content {
-    position: relative;
-    /* CRITICAL: Anchors the absolute wave inside */
-    /* Add extra padding at bottom so text doesn't overlap the wave */
-    max-width: 100%;
-    margin: auto;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-}
-
 
 .content h1 {
-    font-size: 2rem;
+    font-family: var(--font-heading);
+    font-size: 2.4rem;
+    font-weight: 400;
     margin-bottom: 0;
+    letter-spacing: 0.5px;
+    color: #fff;
 }
 
-/* Footer */
+#greeting-header {
+    font-family: var(--font-body);
+    font-weight: 300;
+    font-size: 1.1rem;
+    line-height: 1.9;
+    color: rgba(255, 255, 255, 0.9);
+    max-width: 550px;
+    margin: 0.5rem auto 0;
+}
+
+.content .ornament-line {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.content .ornament-diamond {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+
+/* =====================
+   FOOTER
+   ===================== */
 footer {
     text-align: center;
-    background: #000000;
-    color: #fff;
-    padding: 1rem;
+    background: var(--text);
+    color: rgba(255, 255, 255, 0.5);
+    padding: 2rem 1.5rem;
     margin-top: -20px;
+    font-size: 0.8rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
 }
 
-/* --- DETAILS SECTION START --- */
+.footer-names {
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    letter-spacing: 6px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 0.3rem;
+    text-transform: none;
+}
+
+.footer-names .amp {
+    font-style: italic;
+    opacity: 0.7;
+}
+
+
+/* =====================
+   DETAILS SECTIONS
+   ===================== */
 .details {
     max-width: 1100px;
     margin: 1rem auto;
@@ -185,8 +357,20 @@ footer {
 }
 
 .details h2 {
-    font-size: 2rem;
-    margin-bottom: 2rem;
+    font-family: var(--font-heading);
+    font-size: 2.6rem;
+    font-weight: 400;
+    margin-bottom: 0.3rem;
+    letter-spacing: 1px;
+}
+
+.details h3 {
+    font-family: var(--font-heading);
+    font-size: 1.3rem;
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: 0.3px;
+    color: var(--text-light);
 }
 
 .details-image {
@@ -194,75 +378,95 @@ footer {
     height: auto;
     margin-bottom: 1rem;
     max-width: 400px;
+    border-radius: 16px;
 }
 
 .details-columns {
     display: flex;
-    gap: 4rem;
-    margin-top: 0rem;
-    text-align: left;
+    gap: 3rem;
+    margin-top: 1.5rem;
+    text-align: center;
 }
 
 .details-columns .column {
     flex: 1;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 20px;
+    padding: 2.5rem 2rem;
+    border: 1px solid rgba(196, 162, 101, 0.15);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease;
+}
+
+.details-columns .column:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
 }
 
 .details-columns p,
 .details-columns .dynamic-singular,
 .details-columns .dynamic-plural {
-    font-size: 1.15rem;
-    line-height: 1.8;
-    color: #000000;
+    font-size: 1.02rem;
+    line-height: 1.9;
+    color: var(--text);
     margin-top: 1rem;
 }
 
-.details-columns {
-    text-align: center;
-}
-
 .details-columns p a {
-    color: #000000 !important;
+    color: var(--text) !important;
     text-decoration: none;
     padding-bottom: 2px;
-    text-decoration: underline;
+    border-bottom: 1px solid var(--accent-gold);
+    transition: border-color 0.3s ease;
 }
 
 .details-columns p a:hover {
-    color: #000000 !important;
-    border-bottom-color: #555;
-    text-decoration: underline;
+    color: var(--text) !important;
+    border-bottom-color: var(--text);
+}
+
+#dynamic-text-full {
+    font-family: var(--font-heading);
+    font-style: italic;
+    font-size: 1.08rem;
+    line-height: 2;
+    color: var(--text);
 }
 
 #dynamic-text-ref {
-    font-style: italic;
+    font-family: var(--font-body);
+    font-style: normal;
     text-align: right;
+    color: var(--text-light);
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-top: 0.8rem;
 }
 
 .grey {
-      background: var(--waveC1);
-      
+    background: var(--waveC1);
 }
 
 .red {
     background: var(--waveC2);
 }
 
-/* Bubble bg with plain CSS */
+/* =====================
+   WAVE DECORATIONS
+   ===================== */
 .wave {
     position: absolute;
-    /* Move it down by the exact height of the SVG */
     bottom: -100px;
     left: 0;
     width: 100%;
     overflow: hidden;
     line-height: 0;
     z-index: 1;
-    /* Ensures it sits on top of the next section if needed */
 }
+
 .wave2 {
     transform: rotate(180deg);
     position: absolute;
-    /* Move it down by the exact height of the SVG */
     top: -100px;
     left: 0;
     width: 100%;
@@ -272,9 +476,7 @@ footer {
 }
 
 .wave3 {
-    
     position: absolute;
-    /* Move it down by the exact height of the SVG */
     top: -100px;
     left: 0;
     width: 100%;
@@ -282,12 +484,12 @@ footer {
     line-height: 0;
     z-index: 1;
 }
+
 .wave svg {
     position: relative;
     display: block;
     width: 100%;
     height: 100px;
-    /* This height must match the bottom value above */
 }
 
 .wave2 svg {
@@ -295,7 +497,6 @@ footer {
     display: block;
     width: 100%;
     height: 100px;
-    /* This height must match the bottom value above */
 }
 
 .wave3 svg {
@@ -304,43 +505,59 @@ footer {
     width: 100%;
     height: 100px;
     transform: rotate(180deg);
-    /* This height must match the bottom value above */
 }
 
 .wave .shape-fill {
     fill: var(--waveC1);
 }
+
 .wave2 .shape-fill {
     fill: var(--waveC2);
 }
+
 .wave3 .shape-fill {
     fill: var(--waveC1);
 }
+
 .back {
     background-color: var(--waveC2);
 }
 
+/* On the green background, make cards semi-transparent */
+.back .details-columns .column {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.15);
+}
 
-/* --- FIXED QUOTE HEIGHT (Corrected) --- */
+.back .details-columns .column:hover {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+}
+
+.back .details h2 {
+    color: #fff;
+}
+
+.back .details .ornament-line {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.back .details .ornament-diamond {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.back .details-columns p,
+.back .details-columns .dynamic-singular,
+.back .details-columns .dynamic-plural {
+    color: rgba(255, 255, 255, 0.92);
+}
+
+
+/* --- QUOTE HEIGHT --- */
 .quote-wrapper {
-    /* This reserves the vertical space so the footer doesn't jump */
     min-height: 25rem;
-
-    /* This ensures the text stays at the TOP */
     display: block;
-
-    /* Optional: Smoothly animate height changes if you change the min-height later */
     transition: min-height 0.3s ease;
 }
-
-/* Mobile adjustment: Text wraps more on phones, so it needs more height */
-@media (max-width: 1024px) {
-    .quote-wrapper {
-        /* Increase height for mobile because text lines wrap more */
-        min-height: 22rem;
-    }
-}
-/* --- DETAILS SECTION END --- */
 
 
 /*
@@ -356,224 +573,325 @@ footer {
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
-        padding: 1rem 2rem;
+        padding: 0.8rem 1rem;
         background: none;
     }
 
     .banner {
-        font-size: 0.8rem;
-        text-align: left;
+        font-size: 0.55rem;
+        text-align: center;
+        letter-spacing: 1.5px;
+        padding: 0.35rem 0.75rem;
+        white-space: nowrap;
+        border-radius: 100px;
     }
 
-    /* --- MODIFIED: Show Burger, Hide Desktop Nav --- */
     .burger-button {
         display: flex;
-        position: absolute;
-        top: 1rem;
-        right: 2rem;
+        position: relative;
+        top: auto;
+        right: auto;
         z-index: 1001;
     }
 
     .navbar ul {
-        /* CHANGED: Swapped 'display' for 'opacity' to enable fading */
-        /* display: none; */
         opacity: 0;
         visibility: hidden;
-        transition: opacity 0.6s ease, visibility 0.6s ease;
+        transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         display: flex;
-        /* Keep flex properties */
-
-        /* --- Style as a Full-Screen Overlay --- */
         position: fixed;
         top: 0;
         left: 0;
         width: 100vw;
         height: 100vh;
-
-        /* --- CHANGED: Text Position --- */
         flex-direction: column;
         justify-content: flex-start;
-        padding-top: 20vh;
+        padding-top: 18vh;
         align-items: center;
-        gap: 2rem;
-
-        /* Appearance */
-        backdrop-filter: blur(15px);
+        gap: 1.8rem;
+        background: rgba(58, 53, 53, 0.4);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
         z-index: 1000;
     }
 
     .navbar a {
-        font-size: 1.5rem;
+        font-size: 1.2rem;
         color: #fff;
+        letter-spacing: 2px;
     }
 
-    /* --- This class is Toggled by JS --- */
+    .navbar a::after {
+        display: none;
+    }
+
     .navbar ul.nav-active {
-        /* CHANGED: Toggle opacity/visibility instead of display */
-        /* display: flex; */
         opacity: 1;
         visibility: visible;
     }
 
+    /* --- HERO IMAGE --- */
     .couple-image {
         width: 100%;
-        height: auto;
+        height: 100vh;
+        height: 100svh;
         object-fit: cover;
+        max-height: none;
+    }
+
+    .hero-gradient {
+        height: 40%;
     }
 
     /* --- HERO OVERLAY --- */
     .names-overlay {
         position: absolute;
-        top: 55%;
+        top: auto;
+        bottom: 15%;
         left: 50%;
-        bottom: auto;
-        transform: translate(-50%, -50%);
-        width: 90%;
+        transform: translateX(-50%);
+        width: 92%;
+    }
+
+    .names-pre {
+        font-size: 0.75rem;
+        letter-spacing: 2px;
+        margin-bottom: 0.2rem;
     }
 
     .names-overlay h2 {
-        font-size: 2.5rem;
+        font-size: 2.6rem;
+        letter-spacing: 2px;
     }
 
     .names-overlay p {
-        font-size: 1.75rem;
+        font-size: 0.75rem;
+        letter-spacing: 3px;
     }
 
-    /* --- CONTENT --- */
+    .names-overlay .ornament {
+        margin: 0.5rem auto;
+    }
+
+    .names-overlay .ornament-line {
+        width: 30px;
+    }
+
+    .names-overlay .ornament-diamond {
+        width: 5px;
+        height: 5px;
+    }
+
+    /* --- GREETING CONTENT --- */
     .content {
-        padding: 2rem 1rem;
+        padding: 2.5rem 1.2rem;
     }
 
     .content h1 {
-        font-size: 1.5rem;
-    }
-  
-    .content h2 {
-        font-size: 1.1rem;
+        font-size: 1.6rem;
     }
 
-    /* Bubble bg with plain CSS */
+    #greeting-header {
+        font-size: 0.95rem;
+        line-height: 1.8;
+        max-width: 100%;
+        padding: 0 0.5rem;
+    }
+
+    .ornament {
+        margin: 0.6rem auto;
+    }
+
+    .ornament-line {
+        width: 35px;
+    }
+
+    .ornament-diamond {
+        width: 5px;
+        height: 5px;
+    }
+
+    /* --- WAVES MOBILE --- */
     .wave {
         position: absolute;
-        /* Move it down by the exact height of the SVG */
-        bottom: -70px;
+        bottom: -50px;
         left: 0;
-        width: 120%;
+        width: 100%;
         overflow: hidden;
         line-height: 0;
         z-index: 1;
-        /* Ensures it sits on top of the next section if needed */
     }
 
     .wave svg {
         position: relative;
         display: block;
-        width: 120%;
-        height: 70px;
-        /* This height must match the bottom value above */
+        width: 200%;
+        height: 50px;
     }
-
 
     .wave2 {
         transform: rotate(180deg);
         position: absolute;
-        /* Move it down by the exact height of the SVG */
-        top: -70px;
+        top: -50px;
         left: 0;
-        width: 120%;
+        width: 100%;
         overflow: hidden;
         line-height: 0;
-        transform: rotate(180deg);
         z-index: 1;
     }
-
 
     .wave2 svg {
         position: relative;
         display: block;
-        width: 120%;
-        height: 70px;
-        /* This height must match the bottom value above */
+        width: 200%;
+        height: 50px;
     }
 
-    /* Bubble bg with plain CSS */
     .wave3 {
         position: absolute;
-        /* Move it down by the exact height of the SVG */
-        top: -70px;
-        left: -10px;
-        width: 120%;
+        top: -50px;
+        left: 0;
+        width: 100%;
         overflow: hidden;
         line-height: 0;
         z-index: 1;
-        /* Ensures it sits on top of the next section if needed */
     }
 
     .wave3 svg {
         position: relative;
         display: block;
-        width: 120%;
-        height: 70px;
-        /* This height must match the bottom value above */
+        width: 200%;
+        height: 50px;
     }
 
     /* --- DETAILS SECTIONS --- */
     .details {
-        margin: 2rem auto;
-        padding: 1rem;
+        margin: 0 auto;
+        padding: 2rem 1.2rem;
     }
 
     .details h2 {
-        font-size: 2.2rem;
+        font-size: 1.8rem;
+    }
+
+    .details h3 {
+        font-size: 1.1rem;
+    }
+
+    .details-image {
+        max-width: 280px;
+        border-radius: 12px;
     }
 
     .details-columns {
         flex-direction: column;
-        gap: 2rem;
-        margin-top: 2rem;
+        gap: 1.2rem;
+        margin-top: 1rem;
     }
 
-    .details-columns p {
-        font-size: 1rem;
+    .details-columns .column {
+        padding: 1.5rem 1.2rem;
+        border-radius: 16px;
+    }
+
+    /* Disable hover lift on touch devices */
+    .details-columns .column:hover {
+        transform: none;
+        box-shadow: none;
     }
 
     .details-columns p,
     .details-columns .dynamic-singular,
     .details-columns .dynamic-plural {
-        font-size: 1.15rem;
+        font-size: 0.95rem;
         line-height: 1.8;
-        color: #000000;
-        margin-top: 1rem;
+        margin-top: 0.8rem;
+    }
+
+    #dynamic-text-full {
+        font-size: 1rem;
     }
 
     #dynamic-text-ref {
         text-align: center;
+        font-size: 0.75rem;
     }
-    
+
+    .quote-wrapper {
+        min-height: 18rem;
+    }
+
+    /* --- FOOTER --- */
     footer {
-        margin-top: -40px;
+        margin-top: -20px;
+        padding: 1.5rem 1rem;
+        font-size: 0.7rem;
+        letter-spacing: 2px;
+    }
+
+    .footer-names {
+        font-size: 1.1rem;
+        letter-spacing: 4px;
+    }
+
+    /* --- GREEN SECTION MOBILE --- */
+    .back .details-columns p,
+    .back .details-columns .dynamic-singular,
+    .back .details-columns .dynamic-plural {
+        color: rgba(255, 255, 255, 0.95);
+    }
+}
+
+/* Small phones */
+@media (max-width: 400px) {
+    .names-overlay h2 {
+        font-size: 2rem;
+    }
+
+    .names-overlay p {
+        font-size: 0.65rem;
+        letter-spacing: 2px;
+    }
+
+    .banner {
+        font-size: 0.5rem;
+        letter-spacing: 1px;
+        padding: 0.3rem 0.6rem;
+    }
+
+    .details {
+        padding: 1.5rem 0.8rem;
+    }
+
+    .details h2 {
+        font-size: 1.5rem;
+    }
+
+    .content h1 {
+        font-size: 1.3rem;
+    }
+
+    #greeting-header {
+        font-size: 0.88rem;
     }
 }
 
 
-/* --- SCROLL ANIMATION --- */
-
-/* Initial state: Hidden and pushed left */
+/* =====================
+   SCROLL ANIMATION
+   ===================== */
 .animate-from-left {
     opacity: 0;
-    transform: translateX(-50px);
-    /* Applies to both appearing and disappearing */
-    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    transform: translateY(25px);
+    transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: opacity, transform;
 }
 
-/* State when visible: Back to normal */
 .animate-from-left.in-view {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0);
 }
 
-/* Delays for staggered columns */
 .delay-200 {
     transition-delay: 0.2s;
 }
@@ -581,6 +899,4 @@ footer {
 body,
 html {
     overflow-x: hidden;
-    /* Important to prevent horizontal scrollbars */
 }
-

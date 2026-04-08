@@ -599,9 +599,10 @@ footer {
         padding-left: 0;
     }
 
-    /* Tooltip: tap-friendly */
+    /* Tooltip: tap-friendly, no underline on mobile */
     .tooltip {
         -webkit-tap-highlight-color: transparent;
+        border-bottom: none;
     }
 
     .tooltiptext {

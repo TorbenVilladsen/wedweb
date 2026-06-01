@@ -169,6 +169,38 @@
             </p>
         </section>
 
+        <section class="content" id="morgenmad-dagen-derpaa">
+            <h2 class="animate-from-left">Morgenmad dagen derpå</h2>
+            <div class="ornament ornament-sm animate-from-left">
+                <span class="ornament-line"></span>
+                <span class="ornament-diamond"></span>
+                <span class="ornament-line"></span>
+            </div>
+
+            <div class="iconImage-container animate-from-left delay-100">
+                <img src="../assets/images/sunriseIcon.png" alt="Sunrise Icon" loading="lazy" width="1775" height="1330">
+                <img src="../assets/images/coffeeCupIcon.png" alt="Coffee Cup Icon" loading="lazy" width="1289" height="1330">
+            </div>
+
+            <p class="animate-from-left delay-200">
+                Dagen derpå byder vi på drop-in morgenbrød og kaffe i Helle og Henriks sommerhus på
+                <a href="https://maps.app.goo.gl/bhBKNBiCHprYeK8H7" target="_blank">
+                    Sønder-vasevej 56, 6857 Blåvand.
+                </a>
+                Haven er åben kl. 8-12, og man er velkommen til at blive i den tid man føler for. <br />
+                Hvis det er noget, der kunne friste, må man meget gerne give et uforpligtende svar nedenfor.
+            </p>
+
+            <form class="breakfast-response-form animate-from-left delay-300">
+                <div class="breakfast-button-group">
+                    <button type="button" class="accept">
+                        <span class="dynamic-singular">Giv mig den gluten</span>
+                        <span class="dynamic-plural">Giv os den gluten</span>
+                    </button>
+                </div>
+            </form>
+        </section>
+
         <section class="content">
             <h2 class="animate-from-left">
                 Gaveønsker
@@ -383,10 +415,11 @@
                     updateLinks(uid);
 
                     // 2. Apply Singular/Plural Logic
+                    const isSingularGuest = singular.includes(uid);
                     const singularEls = document.querySelectorAll(".dynamic-singular");
                     const pluralEls = document.querySelectorAll(".dynamic-plural");
 
-                    if (singular.includes(uid)) {
+                    if (isSingularGuest) {
                         singularEls.forEach(el => el.style.display = "block");
                         pluralEls.forEach(el => el.style.display = "none");
                     } else {
@@ -406,6 +439,7 @@
                     // 4. Show Content
                     accessDenied.style.display = "none";
                     mainContent.style.display = "block";
+                    setupBreakfastResponse(uid, guests, isSingularGuest);
 
                 } else {
                     showAccessDenied();
@@ -437,6 +471,112 @@
                         console.log("Skipping link:", href);
                     }
                 });
+            }
+
+            function setupBreakfastResponse(userId, guestList, isSingularGuest) {
+                const form = document.querySelector(".breakfast-response-form");
+                if (!form) return;
+
+                const originalFormHTML = form.innerHTML;
+                const storageKey = `breakfast_status_${userId}`;
+                const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXQNSBodDnHSctoanrbwS9mcvs9-3dfCupqgajxg36_RXTcl7EoQMFnQPCZ9z4IvPs/exec";
+
+                const applyGuestText = () => {
+                    const singularEls = form.querySelectorAll(".dynamic-singular");
+                    const pluralEls = form.querySelectorAll(".dynamic-plural");
+
+                    if (isSingularGuest) {
+                        singularEls.forEach(el => el.style.display = "block");
+                        pluralEls.forEach(el => el.style.display = "none");
+                    } else {
+                        singularEls.forEach(el => el.style.display = "none");
+                        pluralEls.forEach(el => el.style.display = "block");
+                    }
+                };
+
+                const restoreForm = () => {
+                    form.innerHTML = originalFormHTML;
+                    applyGuestText();
+                    attachListeners();
+                };
+
+                const postBreakfastAnswer = (answer) => {
+                    const data = {
+                        uid: userId,
+                        name: guestList[userId],
+                        answer: answer,
+                        comment: "Morgenmad dagen derpå"
+                    };
+
+                    return fetch(GOOGLE_SCRIPT_URL, {
+                        method: "POST",
+                        mode: "no-cors",
+                        headers: {
+                            "Content-Type": "text/plain;charset=utf-8",
+                        },
+                        body: JSON.stringify(data),
+                    });
+                };
+
+                const showSuccessUI = () => {
+                    const greeting = isSingularGuest ? "dig" : "jer";
+
+                    form.innerHTML = `
+                        <div class="breakfast-response-success">
+                            <h3>Tak for dit svar!</h3>
+                            <p>Vi noterer, at morgenmad kunne friste ${greeting}.</p>
+                            <button id="reset-breakfast-response" type="button">Ej ikke alligevel</button>
+                        </div>`;
+
+                    const resetBtn = document.getElementById("reset-breakfast-response");
+                    if (resetBtn) {
+                        resetBtn.addEventListener("click", () => {
+                            resetBtn.disabled = true;
+                            resetBtn.textContent = "Sender ændring...";
+
+                            postBreakfastAnswer("MORGENMAD_NEJ")
+                                .then(() => {
+                                    localStorage.removeItem(storageKey);
+                                    restoreForm();
+                                })
+                                .catch((error) => {
+                                    console.error("Breakfast reset error:", error);
+                                    alert("Der skete en fejl. Prøv venligst igen.");
+                                    resetBtn.disabled = false;
+                                    resetBtn.textContent = "Ej ikke alligevel";
+                                });
+                        });
+                    }
+                };
+
+                const sendBreakfastResponse = () => {
+                    const btnGroup = form.querySelector(".breakfast-button-group");
+                    if (btnGroup) btnGroup.innerHTML = "<p>Sender svar...</p>";
+
+                    postBreakfastAnswer("MORGENMAD_JA")
+                        .then(() => {
+                            localStorage.setItem(storageKey, "MORGENMAD_JA");
+                            showSuccessUI();
+                        })
+                        .catch((error) => {
+                            console.error("Breakfast response error:", error);
+                            alert("Der skete en fejl. Prøv venligst igen.");
+                            restoreForm();
+                        });
+                };
+
+                function attachListeners() {
+                    const btnAccept = form.querySelector(".accept");
+                    if (btnAccept) btnAccept.addEventListener("click", sendBreakfastResponse);
+                }
+
+                const savedAnswer = localStorage.getItem(storageKey);
+                if (savedAnswer) {
+                    showSuccessUI();
+                } else {
+                    applyGuestText();
+                    attachListeners();
+                }
             }
 
             // --- BURGER MENU LOGIC ---

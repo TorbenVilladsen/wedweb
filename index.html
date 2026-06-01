@@ -93,6 +93,24 @@
     </div>
 
     <div id="main-content">
+        <dialog class="landing-dialog" id="landing-dialog" aria-labelledby="landing-dialog-title">
+            <div class="landing-dialog-card">
+                <button class="landing-dialog-close" type="button" aria-label="Luk besked">&times;</button>
+                <p class="landing-dialog-kicker">Halløj!</p>
+                <h2 id="landing-dialog-title">Vi glæder os til at fejre dagen med jer</h2>
+                <p>
+                    Siden man kiggede sidst her på siden, er vi kommet på en gode idé;
+                    at vi gerne vil byde på en gang drop-in morgenbrød og kaffe i Helle og Henriks sommerhus på
+                    <a href="https://maps.app.goo.gl/bhBKNBiCHprYeK8H7" target="_blank">
+                        Sønder-vasevej 56, 6857 Blåvand.
+                    </a>
+                    Vi åbner haven kl. 9-12, og man er velkommen til at blive i den tid der passer én. <br />
+                    Hvis det er noget, der kunne friste, må man meget gerne give et uforpligtende svar, ved at klikke på knappen nedenfor.
+                </p>
+                <a class="landing-dialog-button" href="../Information/#morgenmad-dagen-derpaa">Se siden</a>
+            </div>
+        </dialog>
+
         <main>
             <section class="hero">
                 <div class="hero-header">
@@ -419,7 +437,7 @@
                     }
 
                     // B. Update navigation links so they don't lose the UID when clicking
-                    document.querySelectorAll("nav.navbar a").forEach(link => {
+                    document.querySelectorAll("nav.navbar a, .landing-dialog-button[href]").forEach(link => {
                         try {
                             const url = new URL(link.href, window.location.origin);
                             // Only update internal links
@@ -448,6 +466,7 @@
                     loadingSkeleton.style.display = "none";
                     accessDenied.style.display = "none";
                     mainContent.style.display = "block";
+                    showLandingDialog();
 
                 } else {
                     // INVALID UID (e.g. typo or old code)
@@ -462,6 +481,39 @@
                 loadingSkeleton.style.display = "none";
                 mainContent.style.display = "none";
                 accessDenied.style.display = "flex";
+            }
+
+            function showLandingDialog() {
+                const landingDialog = document.getElementById("landing-dialog");
+                if (!landingDialog) return;
+
+                const closeButtons = landingDialog.querySelectorAll(".landing-dialog-close, .landing-dialog-button");
+
+                closeButtons.forEach(button => {
+                    button.addEventListener("click", () => {
+                        if (typeof landingDialog.close === "function") {
+                            landingDialog.close();
+                        } else {
+                            landingDialog.classList.remove("is-visible");
+                        }
+                    });
+                });
+
+                landingDialog.addEventListener("click", (event) => {
+                    if (event.target === landingDialog) {
+                        if (typeof landingDialog.close === "function") {
+                            landingDialog.close();
+                        } else {
+                            landingDialog.classList.remove("is-visible");
+                        }
+                    }
+                });
+
+                if (typeof landingDialog.showModal === "function") {
+                    landingDialog.showModal();
+                } else {
+                    landingDialog.classList.add("is-visible");
+                }
             }
 
             // --- Burger Menu Script ---

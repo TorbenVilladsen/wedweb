@@ -301,6 +301,79 @@ main {
     transform: scale(1.08);
 }
 
+/* =====================
+   BREAKFAST RESPONSE
+   ===================== */
+.breakfast-response-form {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: center;
+}
+
+.breakfast-button-group {
+    display: flex;
+    justify-content: center;
+}
+
+.breakfast-button-group button {
+    padding: 0.9rem 2.5rem;
+    border: none;
+    border-radius: 50px;
+    font-size: 0.95rem;
+    font-family: var(--font-body);
+    font-weight: 400;
+    cursor: pointer;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, background-color 0.3s ease;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.breakfast-button-group button:hover {
+    transform: translateY(-3px);
+}
+
+.breakfast-button-group button:active {
+    transform: translateY(0);
+}
+
+.breakfast-button-group .accept {
+    background-color: var(--accent-sage);
+    color: white;
+    box-shadow: 0 4px 16px rgba(138, 154, 120, 0.3);
+}
+
+.breakfast-button-group .accept:hover {
+    background-color: #7a8c6a;
+    box-shadow: 0 8px 24px rgba(138, 154, 120, 0.4);
+}
+
+.breakfast-response-success {
+    max-width: 520px;
+    padding: 1.5rem;
+    background-color: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(196, 162, 101, 0.2);
+    border-radius: 16px;
+    text-align: center;
+}
+
+.breakfast-response-success h3 {
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    font-weight: 400;
+    margin-bottom: 0.4rem;
+}
+
+.breakfast-response-success button {
+    margin-top: 0.9rem;
+    border: none;
+    background: none;
+    color: var(--text-light);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    text-decoration: underline;
+}
+
 
 /* =====================
    BOXER / IMAGE SECTION

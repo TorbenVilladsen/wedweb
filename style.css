@@ -28,6 +28,154 @@ body {
 }
 
 /* =====================
+   LANDING DIALOG
+   ===================== */
+.landing-dialog {
+    width: min(92vw, 520px);
+    padding: 0;
+    border: 0;
+    border-radius: 26px;
+    background: transparent;
+    color: var(--text);
+    overflow: visible;
+    position: fixed;
+    inset: 50% auto auto 50%;
+    margin: 0;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 28px 90px rgba(28, 25, 23, 0.28);
+}
+
+.landing-dialog::backdrop {
+    background: rgba(34, 31, 30, 0.42);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.landing-dialog:not([open]) {
+    display: none;
+}
+
+.landing-dialog.is-visible {
+    display: block;
+    z-index: 2000;
+}
+
+.landing-dialog-card {
+    position: relative;
+    padding: 3rem 2.5rem 2.4rem;
+    border: 1px solid rgba(196, 162, 101, 0.28);
+    border-radius: 26px;
+    background:
+        radial-gradient(circle at 12% 10%, rgba(196, 162, 101, 0.2), transparent 34%),
+        linear-gradient(145deg, rgba(255, 252, 246, 0.98), rgba(245, 240, 234, 0.98));
+    text-align: center;
+}
+
+.landing-dialog-card::before {
+    content: '';
+    position: absolute;
+    inset: 14px;
+    border: 1px solid rgba(196, 162, 101, 0.22);
+    border-radius: 20px;
+    pointer-events: none;
+}
+
+.landing-dialog-close {
+    position: absolute;
+    top: 1rem;
+    right: 1.1rem;
+    z-index: 1;
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(58, 53, 53, 0.08);
+    color: var(--text-light);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.25s ease, color 0.25s ease;
+}
+
+.landing-dialog-close:hover,
+.landing-dialog-close:focus-visible {
+    background: rgba(58, 53, 53, 0.16);
+    color: var(--text);
+}
+
+.landing-dialog-kicker {
+    margin-bottom: 0.65rem;
+    color: var(--accent-gold);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+.landing-dialog h2 {
+    max-width: 390px;
+    margin: 0 auto 1rem;
+    font-family: var(--font-heading);
+    font-size: 2.15rem;
+    font-weight: 400;
+    line-height: 1.18;
+}
+
+.landing-dialog p {
+    max-width: 390px;
+    margin-inline: auto;
+    color: var(--text-light);
+    font-size: 1rem;
+    line-height: 1.8;
+}
+
+.landing-dialog p a,
+.landing-dialog p a:visited {
+    color: var(--text);
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent-gold);
+    padding-bottom: 1px;
+    transition: border-color 0.3s ease;
+}
+
+.landing-dialog p a:hover,
+.landing-dialog p a:focus-visible {
+    color: var(--text);
+    border-bottom-color: var(--text);
+}
+
+.landing-dialog-button {
+    display: inline-block;
+    position: relative;
+    z-index: 1;
+    margin-top: 1.8rem;
+    padding: 0.75rem 1.6rem;
+    border: 1px solid rgba(196, 162, 101, 0.55);
+    border-radius: 100px;
+    background: var(--text);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.25s ease, background 0.25s ease;
+}
+
+.landing-dialog-button:hover,
+.landing-dialog-button:focus-visible,
+.landing-dialog-button:visited {
+    color: #fff;
+}
+
+.landing-dialog-button:hover,
+.landing-dialog-button:focus-visible {
+    background: #2a2626;
+    transform: translateY(-1px);
+}
+
+/* =====================
    DECORATIVE ORNAMENTS
    ===================== */
 .ornament {
@@ -628,6 +776,24 @@ footer {
     .navbar ul.nav-active {
         opacity: 1;
         visibility: visible;
+    }
+
+    .landing-dialog-card {
+        padding: 2.6rem 1.5rem 2rem;
+        border-radius: 22px;
+    }
+
+    .landing-dialog-card::before {
+        inset: 10px;
+        border-radius: 17px;
+    }
+
+    .landing-dialog h2 {
+        font-size: 1.75rem;
+    }
+
+    .landing-dialog p {
+        font-size: 0.94rem;
     }
 
     /* --- HERO IMAGE --- */

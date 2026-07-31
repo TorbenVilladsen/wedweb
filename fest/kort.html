@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="da">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Bordkort · Del jeres billeder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="../assets/images/logo.ico">
+
+    <!-- Standalone on purpose: no shared stylesheet, so the sheet prints
+         identically no matter what does or doesn't load. -->
+    <style>
+        :root {
+            --text: #3a3535;
+            --text-light: #6b6565;
+            --accent-gold: #c4a265;
+            --font-heading: 'Playfair Display', Georgia, serif;
+            --font-body: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            color: var(--text);
+            background: #e8e4de;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* --- Screen-only instructions --- */
+        .print-note {
+            max-width: 210mm;
+            margin: 2rem auto 1rem;
+            padding: 1.4rem 1.6rem;
+            background: #fff;
+            border-left: 3px solid var(--accent-gold);
+            font-size: 0.92rem;
+            line-height: 1.75;
+        }
+
+        .print-note h1 {
+            font-family: var(--font-heading);
+            font-size: 1.4rem;
+            font-weight: 400;
+            font-style: italic;
+            margin-bottom: 0.6rem;
+        }
+
+        .print-note ul {
+            margin: 0.6rem 0 0 1.1rem;
+        }
+
+        .print-note strong {
+            font-weight: 500;
+        }
+
+        /* --- The A4 sheet: 2 x 2 A6 cards, exactly filling the page --- */
+        .sheet {
+            width: 210mm;
+            height: 297mm;
+            margin: 0 auto 2rem;
+            background: #fff;
+            display: grid;
+            grid-template-columns: 105mm 105mm;
+            grid-template-rows: 148.5mm 148.5mm;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+        }
+
+        .card {
+            /* Hairline cut guides — the grid lines are where you cut. */
+            border: 0.2mm dashed rgba(58, 53, 53, 0.28);
+            padding: 11mm 9mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 3.5mm;
+        }
+
+        .card h2 {
+            font-family: var(--font-heading);
+            font-size: 17pt;
+            font-weight: 400;
+            font-style: italic;
+            letter-spacing: 0.3pt;
+            line-height: 1.25;
+        }
+
+        .ornament {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2.4mm;
+        }
+
+        .ornament-line {
+            display: block;
+            width: 9mm;
+            height: 0.25mm;
+            background: var(--accent-gold);
+            opacity: 0.6;
+        }
+
+        .ornament-diamond {
+            display: block;
+            width: 1.2mm;
+            height: 1.2mm;
+            background: var(--accent-gold);
+            transform: rotate(45deg);
+            opacity: 0.7;
+        }
+
+        .card .intro {
+            font-size: 8.5pt;
+            font-weight: 300;
+            line-height: 1.65;
+            color: var(--text-light);
+            max-width: 72mm;
+        }
+
+        .qr-frame {
+            padding: 3mm;
+            background: #fff;
+            border: 0.3mm solid rgba(196, 162, 101, 0.5);
+            border-radius: 2mm;
+            line-height: 0;
+        }
+
+        .qr-frame img {
+            display: block;
+            width: 36mm;
+            height: 36mm;
+        }
+
+        .card .url {
+            font-size: 8.5pt;
+            font-weight: 500;
+            letter-spacing: 0.6pt;
+            color: var(--text);
+        }
+
+        .card .signature {
+            font-family: var(--font-heading);
+            font-size: 7.5pt;
+            font-style: italic;
+            letter-spacing: 1.2pt;
+            color: var(--text-light);
+        }
+
+        /* --- Print --- */
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+
+        @media print {
+            body {
+                background: #fff;
+            }
+
+            .print-note {
+                display: none;
+            }
+
+            .sheet {
+                margin: 0;
+                box-shadow: none;
+                page-break-after: always;
+                break-after: page;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="print-note">
+        <h1>Sådan printer du bordkortene</h1>
+        <p>
+            Arket herunder er ét A4 med fire ens kort. Print det, klip langs de stiplede linjer,
+            og læg ét kort på hvert bord. Print så mange ark, du skal bruge.
+        </p>
+        <ul>
+            <li>Papirstørrelse: <strong>A4</strong>, stående.</li>
+            <li>Skalering: <strong>100 %</strong> — vælg <em>ikke</em> "tilpas til side". Skalering kan
+                skrumpe den hvide kant omkring QR-koden, og så bliver den svær at scanne.</li>
+            <li>Slå <strong>baggrundsgrafik</strong> til, så guldfarven kommer med.</li>
+            <li>Test det printede kort med en telefon, før du printer resten.</li>
+        </ul>
+        <p style="margin-top:0.8rem">
+            QR-koden peger på <strong>anne-og-torben.dk/fest</strong>.
+        </p>
+    </div>
+
+    <div class="sheet">
+        <!-- Four identical cards. Kept as literal copies rather than generated,
+             so this file has no dependency on JavaScript when printing. -->
+        <div class="card">
+            <h2>Del jeres billeder</h2>
+            <div class="ornament">
+                <span class="ornament-line"></span>
+                <span class="ornament-diamond"></span>
+                <span class="ornament-line"></span>
+            </div>
+            <p class="intro">
+                Scan koden og send dagens billeder til os. Det tager et øjeblik,
+                og I skal ikke hente nogen app.
+            </p>
+            <div class="qr-frame">
+                <img src="../assets/qr-fest.svg" alt="QR-kode til anne-og-torben.dk/fest">
+            </div>
+            <p class="url">anne-og-torben.dk/fest</p>
+            <p class="signature">A &amp; T · 15. august 2026</p>
+        </div>
+
+        <div class="card">
+            <h2>Del jeres billeder</h2>
+            <div class="ornament">
+                <span class="ornament-line"></span>
+                <span class="ornament-diamond"></span>
+                <span class="ornament-line"></span>
+            </div>
+            <p class="intro">
+                Scan koden og send dagens billeder til os. Det tager et øjeblik,
+                og I skal ikke hente nogen app.
+            </p>
+            <div class="qr-frame">
+                <img src="../assets/qr-fest.svg" alt="QR-kode til anne-og-torben.dk/fest">
+            </div>
+            <p class="url">anne-og-torben.dk/fest</p>
+            <p class="signature">A &amp; T · 15. august 2026</p>
+        </div>
+
+        <div class="card">
+            <h2>Del jeres billeder</h2>
+            <div class="ornament">
+                <span class="ornament-line"></span>
+                <span class="ornament-diamond"></span>
+                <span class="ornament-line"></span>
+            </div>
+            <p class="intro">
+                Scan koden og send dagens billeder til os. Det tager et øjeblik,
+                og I skal ikke hente nogen app.
+            </p>
+            <div class="qr-frame">
+                <img src="../assets/qr-fest.svg" alt="QR-kode til anne-og-torben.dk/fest">
+            </div>
+            <p class="url">anne-og-torben.dk/fest</p>
+            <p class="signature">A &amp; T · 15. august 2026</p>
+        </div>
+
+        <div class="card">
+            <h2>Del jeres billeder</h2>
+            <div class="ornament">
+                <span class="ornament-line"></span>
+                <span class="ornament-diamond"></span>
+                <span class="ornament-line"></span>
+            </div>
+            <p class="intro">
+                Scan koden og send dagens billeder til os. Det tager et øjeblik,
+                og I skal ikke hente nogen app.
+            </p>
+            <div class="qr-frame">
+                <img src="../assets/qr-fest.svg" alt="QR-kode til anne-og-torben.dk/fest">
+            </div>
+            <p class="url">anne-og-torben.dk/fest</p>
+            <p class="signature">A &amp; T · 15. august 2026</p>
+        </div>
+    </div>
+
+</body>
+
+</html>

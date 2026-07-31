@@ -1,53 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="da">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Galleri</title>
+    <meta name="robots" content="noindex">
+    <title>Del jeres billeder</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"></noscript>
-    <link rel="stylesheet" href="styleGallery.css">
+    <link rel="stylesheet" href="festStyle.css">
     <link rel="stylesheet" href="../photos.css">
     <link rel="icon" type="image/x-icon" href="../assets/images/logo.ico">
 
-    <style>
-        /* --- Security Styles --- */
-        /* This ensures the page is blank until we verify the user */
-        #access-denied {
-            display: none;
-            height: 100vh;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            background-color: #f4f4f4;
-            font-family: sans-serif;
-            padding: 20px;
-        }
-
-        /* Hide the main website content by default */
-        #main-content {
-            display: none;
-        }
-    </style>
+    <!-- No access gate on this page: it is the target of the shared QR code on
+         the tables, so it must open instantly for plus-ones, kids and anyone
+         who no longer has their invitation. -->
 </head>
 
 <body>
-
-    <div id="access-denied">
-        <h1>Adgang nægtet</h1>
-        <p>Vi kunne ikke finde din invitation.</p>
-        <p>Gå venligst tilbage til forsiden eller scan din QR-kode igen.</p>
-    </div>
 
     <div id="main-content">
         <main>
             <section class="hero">
                 <div class="hero-header">
-                    <a href="../" class="header-icon-link">
+                    <a href="./" class="header-icon-link">
                         <img src="../assets/images/logo.webp" alt="Site Icon" class="header-icon" width="1098" height="1330">
                     </a>
 
@@ -59,10 +37,11 @@
                         </button>
 
                         <ul>
-                            <li><a href="../">Brylluppet</a></li>
-                            <li><a href="../Information/">Praktisk information</a></li>
-                            <li class="active"><a href="index.html">Galleri</a></li>
-                            <li><a href="../RSVP/">RSVP</a></li>
+                            <li><a href="#del">Del billeder</a></li>
+                            <li><a href="#galleri">Billeder fra dagen</a></li>
+                            <li data-requires-uid><a href="../">Brylluppet</a></li>
+                            <li data-requires-uid><a href="../Information/">Praktisk information</a></li>
+                            <li data-requires-uid><a href="../RSVP/">RSVP</a></li>
                         </ul>
                     </nav>
                 </div>
@@ -70,7 +49,7 @@
 
             <div class="spacer layer1"></div>
 
-            <section class="content">
+            <section class="content" id="del">
                 <h2>Del jeres billeder</h2>
                 <div class="ornament ornament-sm">
                     <span class="ornament-line"></span>
@@ -90,7 +69,7 @@
                 </noscript>
             </section>
 
-            <section class="content">
+            <section class="content" id="galleri">
                 <h2>Billeder fra dagen</h2>
                 <div class="ornament ornament-sm">
                     <span class="ornament-line"></span>
@@ -109,74 +88,55 @@
         </main>
 
         <footer>
-            <p>A & T  ·  15. august, 2026</p>
+            <p>A &amp; T · 15. august, 2026</p>
         </footer>
     </div>
-
 
     <script src="../script.js"></script>
     <script src="../photos.js"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", async () => {
+        document.addEventListener("DOMContentLoaded", () => {
+            WedPhotos.init({ mode: "party" });
+
+            // --- NAVIGATION ---
+            // Most of the site sits behind the personal ?uid= gate. A guest who
+            // arrived via the shared table QR has no uid, so those links would
+            // dump them on "Adgang nægtet" — remove them rather than let anyone
+            // hit a wall mid-party. This never blocks rendering.
             const params = new URLSearchParams(window.location.search);
             const uid = params.get("uid");
 
-            const mainContent = document.getElementById("main-content");
-            const accessDenied = document.getElementById("access-denied");
+            const hideGatedLinks = () => {
+                document.querySelectorAll("[data-requires-uid]").forEach(li => li.remove());
+            };
 
-            // --- SECURITY CHECK ---
-
-            // 1. If no UID in URL, deny access immediately
             if (!uid) {
-                showAccessDenied();
-                return;
-            }
-
-            try {
-                // 2. Fetch the guest list to verify ID
-                const response = await fetch("../assets/guest.json");
-                if (!response.ok) throw new Error("JSON not found");
-
-                const guests = await response.json();
-
-                // 3. Verify if ID exists in the JSON
-                if (guests[uid]) {
-                    // === ACCESS GRANTED ===
-
-                    // Show the page content
-                    accessDenied.style.display = "none";
-                    mainContent.style.display = "flex";
-
-                    // Update all navigation links to include the UID
-                    updateLinks(uid);
-
-                    // Start the uploader/gallery. We know who this guest is, so
-                    // their name is prefilled and they never have to type it.
-                    WedPhotos.init({ mode: "guest", name: guests[uid] });
-
-                } else {
-                    // === ACCESS DENIED (Invalid ID) ===
-                    showAccessDenied();
-                }
-            } catch (err) {
-                console.error("Security verification failed:", err);
-                // In case of technical error, default to Access Denied
-                showAccessDenied();
-            }
-
-            // --- HELPER FUNCTIONS ---
-
-            function showAccessDenied() {
-                mainContent.style.display = "none";
-                accessDenied.style.display = "flex";
+                hideGatedLinks();
+            } else {
+                fetch("../assets/guest.json")
+                    .then(response => {
+                        if (!response.ok) throw new Error("JSON not found");
+                        return response.json();
+                    })
+                    .then(guests => {
+                        if (guests[uid]) {
+                            updateLinks(uid);
+                            const nameInput = document.getElementById("wed-name");
+                            if (nameInput && !nameInput.value) nameInput.value = guests[uid];
+                        } else {
+                            hideGatedLinks();
+                        }
+                    })
+                    .catch(() => hideGatedLinks());
             }
 
             function updateLinks(validUid) {
                 document.querySelectorAll("a").forEach(link => {
                     const href = link.getAttribute("href");
 
-                    // Skip external links, mailto, or empty links
-                    if (!href || href.startsWith("mailto:") || (href.startsWith("http") && !href.includes("index.html"))) {
+                    // Skip external links, mailto, in-page anchors, or empty links
+                    if (!href || href.startsWith("#") || href.startsWith("mailto:") ||
+                        (href.startsWith("http") && !href.includes("index.html"))) {
                         return;
                     }
 
@@ -212,6 +172,12 @@
                     if (e.target === navLinks) {
                         closeMenu();
                     }
+                });
+
+                // Close after tapping an in-page anchor, so the menu doesn't
+                // stay over the section it just scrolled to.
+                navLinks.querySelectorAll('a[href^="#"]').forEach(link => {
+                    link.addEventListener("click", closeMenu);
                 });
             }
         });

@@ -1,0 +1,489 @@
+/* =========================================================================
+   GÆSTEBILLEDER — upload + galleri
+   -------------------------------------------------------------------------
+   Shared by /fest/ and /Galleri/. Deliberately uses the existing design
+   tokens (--accent-gold, --font-heading, …) instead of redeclaring them, so
+   it inherits whichever page stylesheet loaded first.
+   ========================================================================= */
+
+/* An explicit `display` beats the UA stylesheet's [hidden] rule, so anything
+   below that both sets display and gets toggled via .hidden needs this. */
+.wed-upload [hidden] {
+    display: none;
+}
+
+/* =====================
+   UPLOADER
+   ===================== */
+.wed-upload {
+    margin: 2.5rem auto 0;
+    max-width: 620px;
+    padding: 0 1.2rem;
+    text-align: center;
+}
+
+.wed-name-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.6rem;
+}
+
+.wed-name-row label {
+    font-size: 0.92rem;
+    color: var(--text-light);
+}
+
+.wed-name-input {
+    width: 100%;
+    max-width: 320px;
+    padding: 0.85rem 1.1rem;
+    border: 1px solid rgba(196, 162, 101, 0.25);
+    border-radius: 14px;
+    font-size: 1rem;
+    font-family: var(--font-body);
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.wed-name-input:focus {
+    outline: none;
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 0 3px rgba(196, 162, 101, 0.15);
+}
+
+.wed-file-input {
+    display: none;
+}
+
+.upload-cta {
+    display: block;
+    width: 100%;
+    min-height: 56px;
+    padding: 1rem 2.5rem;
+    border: none;
+    border-radius: 50px;
+    background-color: var(--accent-gold);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(196, 162, 101, 0.3);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.upload-cta:hover:not(:disabled) {
+    transform: translateY(-3px);
+    background-color: #b8925a;
+    box-shadow: 0 8px 24px rgba(196, 162, 101, 0.4);
+}
+
+.upload-cta:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.upload-cta:disabled {
+    opacity: 0.5;
+    cursor: default;
+    box-shadow: none;
+}
+
+.wed-hint {
+    margin-top: 0.8rem;
+    font-size: 0.85rem;
+    color: var(--text-light);
+}
+
+.wed-banner {
+    margin-top: 1.2rem;
+    padding: 0.9rem 1.1rem;
+    border-radius: 14px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.wed-banner.warn {
+    background: rgba(196, 162, 101, 0.12);
+    border: 1px solid rgba(196, 162, 101, 0.3);
+    color: var(--text);
+}
+
+.wed-banner.error {
+    background: rgba(201, 164, 160, 0.15);
+    border: 1px solid rgba(201, 164, 160, 0.4);
+    color: var(--text);
+}
+
+.wed-summary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1.8rem;
+    font-size: 0.9rem;
+    color: var(--text-light);
+    letter-spacing: 1px;
+}
+
+.wed-retry-all {
+    padding: 0.5rem 1.4rem;
+    border: 1px solid var(--accent-gold);
+    border-radius: 50px;
+    background: none;
+    color: var(--accent-gold);
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.wed-retry-all:hover {
+    background: var(--accent-gold);
+    color: #fff;
+}
+
+/* --- Per-file cards --- */
+.wed-list {
+    list-style: none;
+    margin: 1.2rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+}
+
+.upload-card {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.7rem;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.65);
+    border: 1px solid rgba(196, 162, 101, 0.18);
+    text-align: left;
+}
+
+.upload-card.is-done {
+    border-color: rgba(138, 154, 120, 0.45);
+}
+
+.upload-card.is-failed {
+    border-color: rgba(201, 164, 160, 0.55);
+}
+
+.upload-thumb {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    object-fit: cover;
+    border-radius: 10px;
+    background: rgba(196, 162, 101, 0.1);
+}
+
+.upload-meta {
+    flex: 1;
+    min-width: 0;
+}
+
+.upload-status {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-light);
+}
+
+.upload-card.is-done .upload-status {
+    color: var(--accent-sage);
+}
+
+.upload-card.is-failed .upload-status {
+    color: var(--text);
+}
+
+.progress {
+    margin-top: 0.45rem;
+    height: 3px;
+    border-radius: 3px;
+    background: rgba(196, 162, 101, 0.18);
+    overflow: hidden;
+}
+
+.progress span {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--accent-gold);
+    transition: width 0.25s ease;
+}
+
+.upload-card.is-done .progress span {
+    background: var(--accent-sage);
+}
+
+.upload-retry {
+    margin-top: 0.5rem;
+    padding: 0.35rem 1rem;
+    border: 1px solid var(--accent-gold);
+    border-radius: 50px;
+    background: none;
+    color: var(--accent-gold);
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+}
+
+.upload-retry:hover {
+    background: var(--accent-gold);
+    color: #fff;
+}
+
+/* --- Success card (matches the RSVP success idiom) --- */
+.wed-success {
+    margin-top: 1.5rem;
+    padding: 2rem 1.5rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(196, 162, 101, 0.25);
+}
+
+.wed-success h3 {
+    font-family: var(--font-heading);
+    font-size: 1.6rem;
+    font-weight: 400;
+    font-style: italic;
+    margin-bottom: 0.2rem;
+}
+
+.wed-success p {
+    font-size: 1rem;
+    color: var(--text-light);
+}
+
+.wed-more {
+    margin-top: 1.4rem;
+    padding: 0.7rem 1.8rem;
+    border: 1px solid var(--accent-gold);
+    border-radius: 50px;
+    background: none;
+    color: var(--accent-gold);
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.wed-more:hover {
+    background: var(--accent-gold);
+    color: #fff;
+}
+
+/* --- Help disclosure --- */
+.wed-help {
+    margin-top: 2rem;
+    font-size: 0.85rem;
+    color: var(--text-light);
+}
+
+.wed-help summary {
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    color: var(--accent-gold);
+}
+
+.wed-help p {
+    margin-top: 0.7rem;
+    font-size: 0.85rem;
+    line-height: 1.7;
+}
+
+/* =====================
+   GALLERY
+   ===================== */
+.wed-gallery {
+    margin: 2.5rem auto 0;
+    max-width: 1100px;
+    padding: 0 1.2rem 3rem;
+}
+
+.gallery-count {
+    margin-bottom: 1.2rem;
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-light);
+}
+
+.photo-grid {
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.photo-tile {
+    padding: 0;
+    border: none;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    background: rgba(196, 162, 101, 0.08);
+    aspect-ratio: 1;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.photo-tile:hover {
+    transform: scale(1.02);
+}
+
+.photo-tile img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+.photo-tile.is-loaded img {
+    opacity: 1;
+}
+
+.gallery-sentinel {
+    min-height: 2.5rem;
+    margin-top: 1.8rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-light);
+}
+
+/* =====================
+   LIGHTBOX
+   ===================== */
+body.lightbox-open {
+    overflow: hidden;
+}
+
+.lightbox {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100svh;
+    max-height: 100svh;
+    padding: 0;
+    border: none;
+    background: rgba(26, 23, 23, 0.96);
+    overflow: hidden;
+}
+
+.lightbox::backdrop {
+    background: rgba(26, 23, 23, 0.9);
+}
+
+.lightbox-figure {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 3.5rem 1rem 2.5rem;
+}
+
+.lightbox-img {
+    max-width: 100%;
+    max-height: calc(100svh - 8rem);
+    object-fit: contain;
+    border-radius: 6px;
+}
+
+.lightbox-caption {
+    font-family: var(--font-heading);
+    font-style: italic;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.75);
+    min-height: 1.4em;
+}
+
+.lightbox-close,
+.lightbox-nav {
+    position: absolute;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    cursor: pointer;
+    line-height: 1;
+    transition: background-color 0.3s ease;
+}
+
+.lightbox-close:hover,
+.lightbox-nav:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.lightbox-close {
+    top: 1rem;
+    right: 1rem;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    font-size: 1.6rem;
+}
+
+.lightbox-nav {
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 72px;
+    border-radius: 8px;
+    font-size: 2rem;
+}
+
+.lightbox-nav.prev {
+    left: 0.5rem;
+}
+
+.lightbox-nav.next {
+    right: 0.5rem;
+}
+
+/* =====================
+   RESPONSIVE
+   ===================== */
+@media (max-width: 640px) {
+    .photo-grid {
+        gap: 0.35rem;
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    }
+
+    .wed-gallery {
+        padding: 0 0.8rem 2.5rem;
+    }
+
+    /* Arrows sit under the thumb on a phone; swiping is the primary gesture. */
+    .lightbox-nav {
+        width: 40px;
+        height: 60px;
+        font-size: 1.6rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .upload-cta,
+    .photo-tile,
+    .photo-tile img,
+    .progress span {
+        transition: none;
+    }
+}

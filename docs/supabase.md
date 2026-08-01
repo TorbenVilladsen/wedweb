@@ -113,6 +113,115 @@ Kort om hvorfor:
 
 ---
 
+## 4b. Sletning og admin-login
+
+Kør hele blokken i **SQL Editor** → **New query** → **Run**.
+
+```sql
+-- Gæster kan skjule deres egne billeder; I kan slette alt.
+
+alter table public.photos add column if not exists delete_token text;
+alter table public.photos add column if not exists deleted_at  timestamptz;
+
+-- Gæster må ALDRIG kunne læse delete_token — så kunne enhver slette alt.
+-- Derfor kolonne-for-kolonne adgang i stedet for adgang til hele tabellen.
+revoke select, insert, update, delete on public.photos from anon;
+
+grant select (id, seq, storage_path, thumb_path, guest_name,
+              width, height, taken_at, created_at, approved, deleted_at)
+  on public.photos to anon;
+
+grant insert (id, storage_path, thumb_path, guest_name,
+              width, height, taken_at, delete_token)
+  on public.photos to anon;
+
+-- I selv, når I er logget ind, må se og slette alt.
+grant select, delete on public.photos to authenticated;
+
+drop policy if exists "anyone can read approved photos" on public.photos;
+
+create policy "anyone can read visible photos"
+  on public.photos for select to anon
+  using (approved and deleted_at is null);
+
+create policy "signed in can read every photo"
+  on public.photos for select to authenticated
+  using (true);
+
+create policy "signed in can delete photos"
+  on public.photos for delete to authenticated
+  using (true);
+
+-- Gæstens egen sletning. Funktionen kører med forhøjede rettigheder, men
+-- gør kun noget, hvis den hemmelige nøgle fra gæstens telefon passer.
+create or replace function public.delete_own_photo(p_id uuid, p_token text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare n int;
+begin
+  update public.photos
+     set deleted_at = now()
+   where id = p_id
+     and deleted_at is null
+     and delete_token is not null
+     and delete_token = p_token;
+  get diagnostics n = row_count;
+  return n > 0;
+end;
+$$;
+
+revoke all on function public.delete_own_photo(uuid, text) from public;
+grant execute on function public.delete_own_photo(uuid, text) to anon, authenticated;
+```
+
+### Lad jer selv slette filerne
+
+**Storage → Policies → `objects` → New policy → For full customization**
+
+- Policy name: `signed in can delete gallery files`
+- **Allowed operation**: kun **DELETE**
+- **Target roles**: **authenticated**
+- **USING expression**:
+  ```sql
+  bucket_id = 'gallery'
+  ```
+
+### Opret jeres eget login
+
+1. **Authentication** → **Users** → **Add user** → **Create new user**.
+2. Skriv jeres e-mail og en adgangskode. Sæt flueben i **Auto Confirm User**.
+3. Gem adgangskoden i din adgangskodemanager.
+
+> **Vigtigt:** gå derefter til **Authentication** → **Providers** → **Email** og
+> slå **Enable sign ups** FRA.
+>
+> Alle, der er logget ind, kan slette alt. Hvis fremmede selv kan oprette en
+> bruger, kan de også slette jeres billeder. Med tilmelding slået fra findes
+> der kun den ene bruger, I lige har oprettet.
+
+Log ind på **anne-og-torben.dk/admin**. Siden er ikke linket fra resten af
+sitet, men det er login'et — ikke den skjulte adresse — der beskytter den.
+
+### Hvad "slet" betyder de to steder
+
+| Hvem | Hvad sker der | Kan det fortrydes |
+|---|---|---|
+| Gæst sletter sit eget | Billedet forsvinder fra galleriet for alle. Filen bliver liggende. | Ja — sæt `deleted_at` til `null` i Table Editor |
+| I sletter (logget ind) | Række og begge filer slettes permanent. | Nej |
+
+En gæst kan kun slette fra **den telefon, billedet blev sendt fra**. Nøglen
+ligger i browserens hukommelse på den enhed. Rydder de browserdata eller
+skifter telefon, må de spørge jer. Det er prisen for, at gæsterne slipper for
+at oprette en bruger.
+
+Sæt flueben i **"Vis også billeder, gæster har slettet"** på admin-siden for at
+se dem, gæsterne har fjernet, og rydde filerne op bagefter.
+
+---
+
 ## 5. Sæt de to værdier ind i koden
 
 1. Tandhjulet **Project Settings** → **API** (kan hedde **API Keys**).
@@ -175,16 +284,18 @@ ikke deployes noget. Opret policyen igen (punkt 3) for at åbne igen.
 
 Skal galleriet også slukkes helt: sæt spanden `gallery` til ikke-public.
 
-### Skjul ét billede (kan fortrydes)
+### Fjern ét billede
 
-**Table Editor** → `photos` → find rækken → sæt `approved` til `false` → gem.
-Billedet forsvinder fra galleriet, næste gang siden hentes. Filen bliver liggende.
+Nemmest: log ind på **anne-og-torben.dk/admin**, åbn billedet og tryk
+**Slet permanent**. Det fjerner både rækken og begge filer.
 
-### Slet ét billede permanent
+Hvis I hellere vil gøre det i dashboardet:
 
-1. **Storage** → `gallery` → `uploads/2026-08-15/` → sæt flueben ved filen
-   **og** dens miniature (samme navn med `_t` til sidst) → **Delete**.
-2. **Table Editor** → `photos` → slet rækken.
+- **Skjul midlertidigt (kan fortrydes):** Table Editor → `photos` → sæt
+  `approved` til `false`. Billedet forsvinder fra galleriet; filen bliver liggende.
+- **Slet permanent:** Storage → `gallery` → `uploads/2026-08-15/` → sæt flueben
+  ved filen **og** dens miniature (samme navn med `_t` til sidst) → **Delete**.
+  Slet derefter rækken i Table Editor.
 
 Du finder det rigtige billede ved at højreklikke på det i galleriet →
 *Kopiér billedadresse*. Adressen indeholder et UUID, som du kan søge efter i

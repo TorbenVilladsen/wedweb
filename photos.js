@@ -1,15 +1,22 @@
 /* =========================================================================
    GÆSTEBILLEDER — upload + galleri
    -------------------------------------------------------------------------
-   Shared by /fest/ (open, reached via the printed QR code) and /Galleri/
-   (behind the normal ?uid= gate). Both pages just drop in the two mount
-   points and call WedPhotos.init(); everything below builds the UI itself so
-   the two pages can never drift apart.
+   Shared by /fest/ (open, reached via the printed QR code), /Galleri/
+   (behind the normal ?uid= gate) and /admin/ (behind a real login). Each
+   page just drops in the mount points and calls WedPhotos.init(); everything
+   below builds the UI itself so the pages can never drift apart.
 
    Talks straight to Supabase from the browser — there is no server. Note
    that unlike the Google Apps Script calls in RSVP/index.html we do NOT use
    mode:"no-cors" here: Supabase sends real CORS headers, and real status
    codes are what make the retry logic and the honest error messages work.
+
+   Two kinds of delete:
+     * a guest may hide a photo they uploaded themselves. Proof is a random
+       token generated at upload time, kept in that phone's localStorage and
+       checked server-side by the delete_own_photo() function. The photo
+       vanishes from the gallery; the file stays until an admin purges it.
+     * a signed-in admin may delete anything, files and all.
    ========================================================================= */
 
 (function () {
@@ -38,6 +45,8 @@
 
     const NAME_KEY = "wed_guest_name";
     const ORPHAN_KEY = "wed_orphans";
+    const MINE_KEY = "wed_my_photos";      // { photoId: deleteToken }
+    const ADMIN_KEY = "wed_admin_session";
 
     // --- SMALL HELPERS -----------------------------------------------------
 
@@ -61,20 +70,49 @@
         });
     }
 
+    // A delete token has to be unguessable, unlike the filename UUIDs.
+    function secret() {
+        if (window.crypto && crypto.getRandomValues) {
+            const bytes = new Uint8Array(24);
+            crypto.getRandomValues(bytes);
+            return Array.prototype.map.call(bytes, function (b) {
+                return ("0" + b.toString(16)).slice(-2);
+            }).join("");
+        }
+        return uuid() + uuid();
+    }
+
+    function readStore(key, fallback) {
+        try {
+            return JSON.parse(localStorage.getItem(key)) || fallback;
+        } catch (err) {
+            return fallback;
+        }
+    }
+
+    function writeStore(key, value) {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+        } catch (err) {
+            /* private mode or full — the feature degrades, nothing breaks */
+        }
+    }
+
     function isConfigured() {
         return CONFIG.SUPABASE_URL.indexOf("DIT-PROJEKT") === -1 &&
             CONFIG.SUPABASE_ANON_KEY.indexOf("DIN_ANON_KEY") === -1;
     }
 
-    function baseHeaders() {
-        return {
-            apikey: CONFIG.SUPABASE_ANON_KEY,
-            Authorization: "Bearer " + CONFIG.SUPABASE_ANON_KEY
-        };
-    }
-
     function publicUrl(path) {
         return CONFIG.SUPABASE_URL + "/storage/v1/object/public/" + CONFIG.BUCKET + "/" + path;
+    }
+
+    // ?download= makes Supabase send Content-Disposition: attachment, which is
+    // what actually saves the file — the <a download> attribute is ignored
+    // cross-origin.
+    function downloadUrl(photo) {
+        const name = "bryllup-15-08-2026-" + String(photo.id || "").slice(0, 8) + ".jpg";
+        return publicUrl(photo.storage_path) + "?download=" + encodeURIComponent(name);
     }
 
     // Errors carry a `retryable` flag so the retry loop never hammers away at
@@ -102,6 +140,129 @@
                 await sleep(CONFIG.RETRY_DELAYS[attempt] + Math.random() * 500);
             }
         }
+    }
+
+    // --- ADMIN SESSION -----------------------------------------------------
+    // Ordinary Supabase email+password auth. Signups are disabled in the
+    // dashboard, so "authenticated" means the couple and nobody else.
+
+    let session = readStore(ADMIN_KEY, null);
+
+    function isAdmin() {
+        return !!(session && session.access_token);
+    }
+
+    function anonHeaders() {
+        return {
+            apikey: CONFIG.SUPABASE_ANON_KEY,
+            Authorization: "Bearer " + CONFIG.SUPABASE_ANON_KEY
+        };
+    }
+
+    // Reads and deletes run as the admin when signed in, as anon otherwise.
+    // Uploads always use anonHeaders(), because the insert policies are
+    // written for the anon role.
+    function authHeaders() {
+        return {
+            apikey: CONFIG.SUPABASE_ANON_KEY,
+            Authorization: "Bearer " + (isAdmin() ? session.access_token : CONFIG.SUPABASE_ANON_KEY)
+        };
+    }
+
+    function setSession(data) {
+        session = data
+            ? {
+                access_token: data.access_token,
+                refresh_token: data.refresh_token,
+                expires_at: data.expires_at || (Math.floor(Date.now() / 1000) + (data.expires_in || 3600)),
+                email: (data.user && data.user.email) || (session && session.email) || ""
+            }
+            : null;
+
+        if (session) writeStore(ADMIN_KEY, session);
+        else {
+            try { localStorage.removeItem(ADMIN_KEY); } catch (err) { /* ignore */ }
+        }
+    }
+
+    async function signIn(email, password) {
+        const res = await fetch(CONFIG.SUPABASE_URL + "/auth/v1/token?grant_type=password", {
+            method: "POST",
+            headers: { apikey: CONFIG.SUPABASE_ANON_KEY, "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email, password: password })
+        });
+        const data = await res.json().catch(function () { return {}; });
+        if (!res.ok) {
+            const e = new Error(data.error_description || data.msg || data.message || "login");
+            e.status = res.status;
+            throw e;
+        }
+        setSession(data);
+        return session;
+    }
+
+    async function refreshSession() {
+        if (!session || !session.refresh_token) return false;
+        try {
+            const res = await fetch(CONFIG.SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token", {
+                method: "POST",
+                headers: { apikey: CONFIG.SUPABASE_ANON_KEY, "Content-Type": "application/json" },
+                body: JSON.stringify({ refresh_token: session.refresh_token })
+            });
+            if (!res.ok) {
+                setSession(null);
+                return false;
+            }
+            setSession(await res.json());
+            return true;
+        } catch (err) {
+            return false; // offline: keep the session and try again later
+        }
+    }
+
+    async function ensureSession() {
+        if (!isAdmin()) return false;
+        const stillFresh = session.expires_at && (session.expires_at * 1000) > Date.now() + 60000;
+        if (stillFresh) return true;
+        return await refreshSession();
+    }
+
+    async function signOut() {
+        const token = session && session.access_token;
+        setSession(null);
+        if (!token) return;
+        try {
+            await fetch(CONFIG.SUPABASE_URL + "/auth/v1/logout", {
+                method: "POST",
+                headers: { apikey: CONFIG.SUPABASE_ANON_KEY, Authorization: "Bearer " + token }
+            });
+        } catch (err) {
+            /* the local session is already gone, which is what matters */
+        }
+    }
+
+    // --- "MY PHOTOS" -------------------------------------------------------
+    // The only thing that can identify a guest without an account: a token
+    // written to this browser when the photo was uploaded.
+
+    function myPhotos() {
+        return readStore(MINE_KEY, {});
+    }
+
+    function rememberMine(id, token) {
+        const mine = myPhotos();
+        mine[id] = token;
+        writeStore(MINE_KEY, mine);
+    }
+
+    function forgetMine(id) {
+        const mine = myPhotos();
+        delete mine[id];
+        writeStore(MINE_KEY, mine);
+    }
+
+    function tokenFor(id) {
+        return myPhotos()[id] || null;
     }
 
     // --- IMAGE PIPELINE ----------------------------------------------------
@@ -243,7 +404,7 @@
         try {
             res = await fetch(CONFIG.SUPABASE_URL + "/rest/v1/photos", {
                 method: "POST",
-                headers: Object.assign(baseHeaders(), {
+                headers: Object.assign(anonHeaders(), {
                     "Content-Type": "application/json",
                     Prefer: "return=minimal"
                 }),
@@ -255,13 +416,14 @@
         if (!res.ok) throw httpError(res.status, await res.text().catch(function () { return ""; }));
     }
 
-    async function fetchPage(beforeSeq, wantCount) {
+    async function fetchPage(beforeSeq, wantCount, includeDeleted) {
         let url = CONFIG.SUPABASE_URL + "/rest/v1/photos" +
-            "?select=storage_path,thumb_path,guest_name,width,height,seq" +
+            "?select=id,storage_path,thumb_path,guest_name,width,height,seq,deleted_at" +
             "&order=seq.desc&limit=" + CONFIG.PAGE_SIZE;
+        if (!includeDeleted) url += "&deleted_at=is.null";
         if (beforeSeq != null) url += "&seq=lt." + beforeSeq;
 
-        const headers = baseHeaders();
+        const headers = authHeaders();
         if (wantCount) headers.Prefer = "count=exact";
 
         let res;
@@ -282,17 +444,64 @@
         return { rows: await res.json(), total: total };
     }
 
+    // A guest hiding their own photo. The token never leaves this browser
+    // except in this one call, and the server decides whether it matches.
+    async function hideOwnPhoto(photo) {
+        const token = tokenFor(photo.id);
+        if (!token) throw new Error("no token");
+
+        let res;
+        try {
+            res = await fetch(CONFIG.SUPABASE_URL + "/rest/v1/rpc/delete_own_photo", {
+                method: "POST",
+                headers: Object.assign(anonHeaders(), { "Content-Type": "application/json" }),
+                body: JSON.stringify({ p_id: photo.id, p_token: token })
+            });
+        } catch (err) {
+            throw netError();
+        }
+        if (!res.ok) throw httpError(res.status);
+        if ((await res.json()) !== true) throw new Error("token mismatch");
+        forgetMine(photo.id);
+    }
+
+    // An admin deleting for real. Files first, then the row; a 400/404 on a
+    // file is tolerated so a half-finished delete can simply be retried.
+    async function purgePhoto(photo) {
+        if (!(await ensureSession())) throw new Error("not signed in");
+
+        for (const path of [photo.storage_path, photo.thumb_path]) {
+            if (!path) continue;
+            try {
+                await fetch(CONFIG.SUPABASE_URL + "/storage/v1/object/" + CONFIG.BUCKET + "/" + path, {
+                    method: "DELETE",
+                    headers: authHeaders()
+                });
+            } catch (err) {
+                /* network hiccup on a file — the row delete below still decides */
+            }
+        }
+
+        let res;
+        try {
+            res = await fetch(CONFIG.SUPABASE_URL + "/rest/v1/photos?id=eq." + encodeURIComponent(photo.id), {
+                method: "DELETE",
+                headers: authHeaders()
+            });
+        } catch (err) {
+            throw netError();
+        }
+        if (!res.ok) throw httpError(res.status);
+        forgetMine(photo.id);
+    }
+
     function rememberOrphan(path) {
         // The file is safely in storage but its metadata row never landed, so
         // it would be invisible in the gallery. Keep a note so it can be
         // reconciled from the dashboard afterwards.
-        try {
-            const list = JSON.parse(localStorage.getItem(ORPHAN_KEY) || "[]");
-            list.push(path);
-            localStorage.setItem(ORPHAN_KEY, JSON.stringify(list));
-        } catch (err) {
-            /* localStorage full or blocked — nothing useful to do */
-        }
+        const list = readStore(ORPHAN_KEY, []);
+        list.push(path);
+        writeStore(ORPHAN_KEY, list);
     }
 
     // --- UPLOADER ----------------------------------------------------------
@@ -404,7 +613,6 @@
     function createQueue(ui) {
         const items = [];
         let running = 0;
-        let sentCount = 0;
 
         function busy() {
             return items.some(function (item) {
@@ -450,7 +658,9 @@
                 fill: fill,
                 retryBtn: retry,
                 processed: null,      // cached so a retry skips re-encoding
-                storedPath: null      // set once the full-size file is safely up
+                storedPath: null,     // set once the full-size file is safely up
+                photoId: null,
+                token: null
             };
 
             retry.addEventListener("click", function () {
@@ -523,6 +733,8 @@
                 count === 1
                     ? "1 billede er sendt til Anne og Torben ❤️"
                     : count + " billeder er sendt til Anne og Torben ❤️"));
+            card.appendChild(el("p", "wed-fineprint",
+                "Fortryder du? Åbn dit billede i galleriet nedenfor og tryk Slet."));
 
             const more = el("button", "wed-more", "Send flere billeder");
             more.type = "button";
@@ -561,11 +773,11 @@
                 }
 
                 const processed = item.processed;
-                const id = uuid();
 
                 if (!item.storedPath) {
-                    const fullPath = CONFIG.DAY_FOLDER + "/" + id + ".jpg";
-                    const thumbPath = CONFIG.DAY_FOLDER + "/" + id + "_t.jpg";
+                    const fileId = uuid();
+                    const fullPath = CONFIG.DAY_FOLDER + "/" + fileId + ".jpg";
+                    const thumbPath = CONFIG.DAY_FOLDER + "/" + fileId + "_t.jpg";
 
                     setStatus(item, "Sender… 0 %");
                     await withRetry(function () {
@@ -580,37 +792,50 @@
                     item.storedPath = { full: fullPath, thumb: thumbPath };
                 }
 
+                // Generated up front so we know the row id without reading it
+                // back, and so a retry reuses the same identity.
+                if (!item.photoId) {
+                    item.photoId = uuid();
+                    item.token = secret();
+                }
+
                 setProgress(item, 1);
                 setStatus(item, "Gemmer…");
 
                 const guestName = ui.nameInput.value.trim();
+                const row = {
+                    id: item.photoId,
+                    storage_path: item.storedPath.full,
+                    thumb_path: item.storedPath.thumb,
+                    guest_name: guestName || null,
+                    width: processed.width,
+                    height: processed.height,
+                    taken_at: new Date(item.file.lastModified || Date.now()).toISOString(),
+                    delete_token: item.token
+                };
+
                 try {
-                    await withRetry(function () {
-                        return insertRow({
-                            storage_path: item.storedPath.full,
-                            thumb_path: item.storedPath.thumb,
-                            guest_name: guestName || null,
-                            width: processed.width,
-                            height: processed.height,
-                            taken_at: new Date(item.file.lastModified || Date.now()).toISOString()
-                        });
-                    });
+                    await withRetry(function () { return insertRow(row); });
                 } catch (err) {
                     rememberOrphan(item.storedPath.full);
                     throw err;
                 }
 
+                // Only now is it really "mine" — remembering earlier would leave
+                // a token pointing at a row that never existed.
+                rememberMine(item.photoId, item.token);
+
                 item.status = "done";
                 setStatus(item, "✓ Sendt", "is-done");
-                sentCount++;
 
-                if (window.WedPhotos && window.WedPhotos._onUploaded) {
+                if (window.WedPhotos._onUploaded) {
                     window.WedPhotos._onUploaded({
-                        storage_path: item.storedPath.full,
-                        thumb_path: item.storedPath.thumb,
-                        guest_name: guestName || null,
-                        width: processed.width,
-                        height: processed.height
+                        id: item.photoId,
+                        storage_path: row.storage_path,
+                        thumb_path: row.thumb_path,
+                        guest_name: row.guest_name,
+                        width: row.width,
+                        height: row.height
                     });
                 }
             } catch (err) {
@@ -652,7 +877,8 @@
 
     // --- GALLERY -----------------------------------------------------------
 
-    function buildGallery(mount) {
+    function buildGallery(mount, options) {
+        const opts = options || {};
         const wrap = el("div", "wed-gallery");
         const count = el("p", "gallery-count");
         const grid = el("div", "photo-grid");
@@ -664,7 +890,7 @@
 
         if (!isConfigured()) {
             count.textContent = "Galleriet åbner snart.";
-            return;
+            return null;
         }
 
         const photos = [];
@@ -672,8 +898,12 @@
         let exhausted = false;
         let loading = false;
         let total = null;
+        let includeDeleted = false;
 
-        const lightbox = buildLightbox(photos);
+        const lightbox = buildLightbox(photos, {
+            onRemoved: removePhoto,
+            adminMode: opts.admin === true
+        });
         mount.appendChild(lightbox.node);
 
         function renderCount() {
@@ -682,12 +912,12 @@
         }
 
         function addTile(photo, atStart) {
-            const index = atStart ? 0 : photos.length;
             if (atStart) photos.unshift(photo);
             else photos.push(photo);
 
             const button = el("button", "photo-tile");
             button.type = "button";
+            if (photo.deleted_at) button.classList.add("is-deleted");
             const img = el("img");
             img.src = publicUrl(photo.thumb_path);
             img.loading = "lazy";
@@ -703,9 +933,28 @@
                 lightbox.open(photos.indexOf(photo));
             });
 
+            photo._tile = button;
             if (atStart) grid.insertBefore(button, grid.firstChild);
             else grid.appendChild(button);
-            return index;
+        }
+
+        function removePhoto(photo) {
+            const i = photos.indexOf(photo);
+            if (i !== -1) photos.splice(i, 1);
+            if (photo._tile) photo._tile.remove();
+            if (total != null && total > 0) {
+                total--;
+                renderCount();
+            }
+        }
+
+        function reload() {
+            photos.length = 0;
+            grid.textContent = "";
+            lowestSeq = null;
+            exhausted = false;
+            total = null;
+            loadMore();
         }
 
         async function loadMore() {
@@ -714,7 +963,7 @@
             sentinel.textContent = "Indlæser flere…";
 
             try {
-                const page = await fetchPage(lowestSeq, total == null);
+                const page = await fetchPage(lowestSeq, total == null, includeDeleted);
                 if (page.total != null) {
                     total = page.total;
                     renderCount();
@@ -766,9 +1015,24 @@
                 renderCount();
             }
         };
+
+        return {
+            reload: reload,
+            setIncludeDeleted: function (value) {
+                includeDeleted = value;
+                reload();
+            },
+            setAdmin: function (value) {
+                lightbox.setAdmin(value);
+                reload();
+            }
+        };
     }
 
-    function buildLightbox(photos) {
+    function buildLightbox(photos, options) {
+        const opts = options || {};
+        let adminMode = opts.adminMode === true;
+
         const dialog = el("dialog", "lightbox");
         const figure = el("figure", "lightbox-figure");
         const img = el("img", "lightbox-img");
@@ -786,20 +1050,62 @@
         next.type = "button";
         next.setAttribute("aria-label", "Næste");
 
+        // Toolbar: download always, delete when it's yours or you're the admin.
+        const bar = el("div", "lightbox-bar");
+        const download = el("a", "lightbox-action", "Download");
+        download.setAttribute("download", "");
+        const del = el("button", "lightbox-action danger", "Slet");
+        del.type = "button";
+        const confirmBtn = el("button", "lightbox-action danger confirm", "Ja, slet");
+        confirmBtn.type = "button";
+        confirmBtn.hidden = true;
+        const cancelBtn = el("button", "lightbox-action", "Fortryd");
+        cancelBtn.type = "button";
+        cancelBtn.hidden = true;
+        const note = el("span", "lightbox-note");
+
+        bar.appendChild(download);
+        bar.appendChild(del);
+        bar.appendChild(confirmBtn);
+        bar.appendChild(cancelBtn);
+        bar.appendChild(note);
+
         dialog.appendChild(close);
         dialog.appendChild(prev);
         dialog.appendChild(figure);
         dialog.appendChild(next);
+        dialog.appendChild(bar);
 
         let index = 0;
+
+        function resetDeleteUI() {
+            confirmBtn.hidden = true;
+            cancelBtn.hidden = true;
+            note.textContent = "";
+            del.disabled = false;
+        }
+
+        function canDelete(photo) {
+            return adminMode || !!tokenFor(photo.id);
+        }
 
         function show(i) {
             if (i < 0 || i >= photos.length) return;
             index = i;
             const photo = photos[i];
+
             img.src = publicUrl(photo.storage_path);
             img.alt = photo.guest_name ? "Billede delt af " + photo.guest_name : "Billede fra brylluppet";
-            caption.textContent = photo.guest_name ? "Delt af " + photo.guest_name : "";
+
+            let text = photo.guest_name ? "Delt af " + photo.guest_name : "";
+            if (photo.deleted_at) text = (text ? text + " · " : "") + "Slettet af gæsten";
+            caption.textContent = text;
+
+            download.href = downloadUrl(photo);
+            del.hidden = !canDelete(photo);
+            del.textContent = adminMode ? "Slet permanent" : "Slet";
+            resetDeleteUI();
+
             prev.hidden = i === 0;
             next.hidden = i === photos.length - 1;
 
@@ -818,6 +1124,44 @@
             document.body.classList.add("lightbox-open");
         }
 
+        // Inline two-step confirm rather than window.confirm(), which on a
+        // phone is a jarring system dialog over a photo.
+        del.addEventListener("click", function () {
+            confirmBtn.hidden = false;
+            cancelBtn.hidden = false;
+            del.disabled = true;
+            note.textContent = adminMode
+                ? "Billedet og filerne slettes for altid."
+                : "Billedet fjernes fra galleriet.";
+        });
+
+        cancelBtn.addEventListener("click", resetDeleteUI);
+
+        confirmBtn.addEventListener("click", async function () {
+            const photo = photos[index];
+            confirmBtn.disabled = true;
+            note.textContent = "Sletter…";
+
+            try {
+                if (adminMode) await purgePhoto(photo);
+                else await hideOwnPhoto(photo);
+
+                if (opts.onRemoved) opts.onRemoved(photo);
+                confirmBtn.disabled = false;
+
+                if (!photos.length) {
+                    dialog.close();
+                } else {
+                    show(Math.min(index, photos.length - 1));
+                }
+            } catch (err) {
+                confirmBtn.disabled = false;
+                note.textContent = err.status === 401 || err.status === 403
+                    ? "Du har ikke lov til at slette dette billede."
+                    : "Kunne ikke slette. Prøv igen.";
+            }
+        });
+
         close.addEventListener("click", function () { dialog.close(); });
         prev.addEventListener("click", function () { show(index - 1); });
         next.addEventListener("click", function () { show(index + 1); });
@@ -825,6 +1169,7 @@
         dialog.addEventListener("close", function () {
             document.body.classList.remove("lightbox-open");
             img.removeAttribute("src");
+            resetDeleteUI();
         });
 
         // Click the backdrop (i.e. the dialog itself, not the picture) to close.
@@ -849,7 +1194,118 @@
             show(dx < 0 ? index + 1 : index - 1);
         }, { passive: true });
 
-        return { node: dialog, open: open };
+        return {
+            node: dialog,
+            open: open,
+            setAdmin: function (value) { adminMode = value; }
+        };
+    }
+
+    // --- ADMIN PANEL -------------------------------------------------------
+
+    function buildAdmin(mount, gallery) {
+        const wrap = el("div", "wed-admin");
+        mount.appendChild(wrap);
+
+        function renderSignedOut(message) {
+            wrap.textContent = "";
+            const form = el("form", "wed-admin-form");
+
+            const email = el("input", "wed-name-input");
+            email.type = "email";
+            email.placeholder = "E-mail";
+            email.autocomplete = "username";
+            email.required = true;
+
+            const password = el("input", "wed-name-input");
+            password.type = "password";
+            password.placeholder = "Adgangskode";
+            password.autocomplete = "current-password";
+            password.required = true;
+
+            const submit = el("button", "upload-cta", "Log ind");
+            submit.type = "submit";
+
+            const error = el("p", "wed-admin-error");
+            if (message) error.textContent = message;
+
+            form.appendChild(email);
+            form.appendChild(password);
+            form.appendChild(submit);
+            form.appendChild(error);
+            wrap.appendChild(form);
+
+            form.addEventListener("submit", async function (e) {
+                e.preventDefault();
+                submit.disabled = true;
+                submit.textContent = "Logger ind…";
+                error.textContent = "";
+                try {
+                    await signIn(email.value.trim(), password.value);
+                    renderSignedIn();
+                    if (gallery) gallery.setAdmin(true);
+                } catch (err) {
+                    submit.disabled = false;
+                    submit.textContent = "Log ind";
+                    error.textContent = err.status === 400
+                        ? "Forkert e-mail eller adgangskode."
+                        : "Kunne ikke logge ind. Prøv igen.";
+                }
+            });
+        }
+
+        function renderSignedIn() {
+            wrap.textContent = "";
+
+            const status = el("p", "wed-admin-status",
+                "Logget ind som " + ((session && session.email) || "admin") +
+                ". Åbn et billede for at slette det.");
+
+            const row = el("div", "wed-admin-row");
+
+            const toggleLabel = el("label", "wed-admin-toggle");
+            const toggle = el("input");
+            toggle.type = "checkbox";
+            toggleLabel.appendChild(toggle);
+            toggleLabel.appendChild(el("span", null, "Vis også billeder, gæster har slettet"));
+
+            const out = el("button", "wed-retry-all", "Log ud");
+            out.type = "button";
+
+            row.appendChild(toggleLabel);
+            row.appendChild(out);
+            wrap.appendChild(status);
+            wrap.appendChild(row);
+
+            toggle.addEventListener("change", function () {
+                if (gallery) gallery.setIncludeDeleted(toggle.checked);
+            });
+
+            out.addEventListener("click", async function () {
+                await signOut();
+                if (gallery) gallery.setAdmin(false);
+                renderSignedOut();
+            });
+        }
+
+        if (!isConfigured()) {
+            wrap.appendChild(el("p", "wed-admin-error", "Supabase er ikke sat op endnu."));
+            return;
+        }
+
+        if (isAdmin()) {
+            renderSignedIn();
+            // Refresh in the background; drop straight to the form if the
+            // stored session has gone stale.
+            ensureSession().then(function (ok) {
+                if (!ok) {
+                    if (gallery) gallery.setAdmin(false);
+                    renderSignedOut("Din session er udløbet. Log ind igen.");
+                }
+            });
+        } else {
+            renderSignedOut();
+        }
     }
 
     // --- PUBLIC API --------------------------------------------------------
@@ -857,18 +1313,25 @@
     window.WedPhotos = {
         /**
          * @param {Object} options
-         * @param {string} [options.mode]  "party" (open page) or "guest" (uid-gated)
+         * @param {string} [options.mode]  "party" | "guest" | "admin"
          * @param {string} [options.name]  known guest name, used to prefill the credit field
          */
         init: function (options) {
             const opts = options || {};
             const state = { mode: opts.mode || "party", name: opts.name || "" };
+            const admin = state.mode === "admin";
 
             const uploadMount = document.getElementById("wed-uploader");
             const galleryMount = document.getElementById("wed-gallery");
+            const adminMount = document.getElementById("wed-admin");
 
-            if (uploadMount) buildUploader(uploadMount, state);
-            if (galleryMount) buildGallery(galleryMount);
+            if (uploadMount && !admin) buildUploader(uploadMount, state);
+
+            const gallery = galleryMount
+                ? buildGallery(galleryMount, { admin: admin && isAdmin() })
+                : null;
+
+            if (adminMount) buildAdmin(adminMount, gallery);
         }
     };
 })();

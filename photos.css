@@ -457,6 +457,153 @@ body.lightbox-open {
     right: 0.5rem;
 }
 
+/* --- Lightbox toolbar: download / delete --- */
+.lightbox-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding: 0.9rem 1rem calc(0.9rem + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(to top, rgba(26, 23, 23, 0.85), rgba(26, 23, 23, 0));
+}
+
+.lightbox-action {
+    padding: 0.5rem 1.3rem;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 50px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.lightbox-action:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.lightbox-action.danger {
+    border-color: rgba(201, 164, 160, 0.6);
+    color: #e8c9c5;
+}
+
+.lightbox-action.danger:hover {
+    background: rgba(201, 164, 160, 0.25);
+}
+
+.lightbox-action.confirm {
+    background: rgba(201, 164, 160, 0.9);
+    border-color: transparent;
+    color: #3a3535;
+}
+
+.lightbox-action:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.lightbox-action[hidden] {
+    display: none;
+}
+
+.lightbox-note {
+    width: 100%;
+    text-align: center;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Leave room for the toolbar so it never covers the photo. */
+.lightbox-figure {
+    padding-bottom: 5.5rem;
+}
+
+.lightbox-img {
+    max-height: calc(100svh - 12rem);
+}
+
+/* Tiles a guest has removed — only ever visible to a signed-in admin. */
+.photo-tile.is-deleted {
+    opacity: 0.45;
+    outline: 2px dashed rgba(201, 164, 160, 0.7);
+    outline-offset: -2px;
+}
+
+/* =====================
+   ADMIN
+   ===================== */
+.wed-admin {
+    max-width: 620px;
+    margin: 2rem auto 0;
+    padding: 0 1.2rem;
+    text-align: center;
+}
+
+.wed-admin-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.9rem;
+}
+
+.wed-admin-form .wed-name-input {
+    max-width: 320px;
+}
+
+.wed-admin-form .upload-cta {
+    max-width: 320px;
+}
+
+.wed-admin-error {
+    font-size: 0.88rem;
+    color: #a8706a;
+    min-height: 1.3em;
+}
+
+.wed-admin-status {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin-bottom: 1rem;
+}
+
+.wed-admin-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1.2rem;
+}
+
+.wed-admin-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.88rem;
+    color: var(--text-light);
+    cursor: pointer;
+}
+
+.wed-admin-toggle input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent-gold);
+}
+
+.wed-fineprint {
+    margin-top: 0.6rem;
+    font-size: 0.82rem;
+    color: var(--text-light);
+}
+
 /* =====================
    RESPONSIVE
    ===================== */

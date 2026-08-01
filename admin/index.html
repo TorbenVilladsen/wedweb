@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="da">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Administration · Billeder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"></noscript>
+    <link rel="stylesheet" href="adminStyle.css">
+    <link rel="stylesheet" href="../photos.css">
+    <link rel="icon" type="image/x-icon" href="../assets/images/logo.ico">
+
+    <!-- For Anne og Torben. Ikke linket fra resten af siden.
+         Adgang styres af rigtigt login i Supabase — ikke af at adressen er
+         svær at gætte. Uden login kan man kun se billederne, som alle andre. -->
+</head>
+
+<body>
+
+    <div id="main-content">
+        <main>
+            <section class="hero">
+                <div class="hero-header">
+                    <a href="../fest/" class="header-icon-link">
+                        <img src="../assets/images/logo.webp" alt="Site Icon" class="header-icon" width="1098" height="1330">
+                    </a>
+
+                    <nav class="navbar">
+                        <button class="burger-button" id="burger-toggle">
+                            <span class="burger-line"></span>
+                            <span class="burger-line"></span>
+                            <span class="burger-line"></span>
+                        </button>
+
+                        <ul>
+                            <li><a href="../fest/">Til gæstesiden</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </section>
+
+            <div class="spacer layer1"></div>
+
+            <section class="content">
+                <h2>Administration</h2>
+                <div class="ornament ornament-sm">
+                    <span class="ornament-line"></span>
+                    <span class="ornament-diamond"></span>
+                    <span class="ornament-line"></span>
+                </div>
+
+                <p>
+                    Log ind for at kunne slette et hvilket som helst billede — også dem, gæsterne
+                    selv har fjernet. Sletning her fjerner både billedet og filerne for altid.
+                </p>
+
+                <div id="wed-admin"></div>
+            </section>
+
+            <section class="content">
+                <div id="wed-gallery"></div>
+            </section>
+
+        </main>
+
+        <footer>
+            <p>A &amp; T · 15. august, 2026</p>
+        </footer>
+    </div>
+
+    <script src="../script.js"></script>
+    <script src="../photos.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            WedPhotos.init({ mode: "admin" });
+
+            // --- BURGER MENU LOGIC ---
+            const burgerToggle = document.getElementById("burger-toggle");
+            const navLinks = document.querySelector(".navbar ul");
+
+            if (burgerToggle && navLinks) {
+                const closeMenu = () => {
+                    navLinks.classList.remove("nav-active");
+                    burgerToggle.classList.remove("burger-active");
+                };
+
+                const toggleMenu = () => {
+                    navLinks.classList.toggle("nav-active");
+                    burgerToggle.classList.toggle("burger-active");
+                };
+
+                burgerToggle.addEventListener("click", toggleMenu);
+
+                navLinks.addEventListener("click", (e) => {
+                    if (e.target === navLinks) {
+                        closeMenu();
+                    }
+                });
+            }
+        });
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="da">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Testside · Billedupload</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"></noscript>
+    <link rel="stylesheet" href="../Galleri/styleGallery.css">
+    <link rel="stylesheet" href="../photos.css">
+    <link rel="icon" type="image/x-icon" href="../assets/images/logo.ico">
+
+    <!-- Testside. Bevidst uden ?uid=-låsen, så den kan åbnes på en hvilken som
+         helst telefon — også en, der er lånt af en ven med Android.
+
+         Billederne herfra havner i uploads/test/ og kan ikke ses i det rigtige
+         galleri. Slet dem i /admin/, når I er færdige.
+
+         Slet hele denne mappe efter brylluppet. -->
+
+    <style>
+        /* Screen only, and only on this page — the real pages must never grow
+           a banner like this by accident. */
+        .test-banner {
+            background: #3a3535;
+            color: #faf8f4;
+            text-align: center;
+            padding: 0.85rem 1rem;
+            font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 50;
+        }
+
+        .test-banner strong {
+            color: #d9bd83;
+            font-weight: 600;
+        }
+
+        .test-facts {
+            max-width: 40rem;
+            margin: 0 auto 2rem;
+            padding: 1.1rem 1.3rem;
+            background: rgba(255, 255, 255, 0.7);
+            border-left: 3px solid var(--accent-gold);
+            border-radius: 4px;
+            font-size: 0.82rem;
+            line-height: 1.9;
+            color: var(--text-light);
+            text-align: left;
+            /* Long UA strings must not stretch the page on a phone. */
+            overflow-wrap: anywhere;
+        }
+
+        .test-facts dt {
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: 0.4px;
+        }
+
+        .test-facts dd {
+            margin: 0 0 0.55rem;
+        }
+
+        .test-facts .ok {
+            color: #4b7d4b;
+        }
+
+        .test-facts .bad {
+            color: #a8443c;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="test-banner">
+        <strong>Testside</strong> · billederne herfra kommer ikke i det rigtige galleri
+    </div>
+
+    <div id="main-content">
+        <main>
+            <section class="hero">
+                <div class="hero-header">
+                    <a href="./" class="header-icon-link">
+                        <img src="../assets/images/logo.webp" alt="Site Icon" class="header-icon" width="1098" height="1330">
+                    </a>
+
+                    <nav class="navbar">
+                        <button class="burger-button" id="burger-toggle">
+                            <span class="burger-line"></span>
+                            <span class="burger-line"></span>
+                            <span class="burger-line"></span>
+                        </button>
+
+                        <ul>
+                            <li class="active"><a href="./">Test</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </section>
+
+            <div class="spacer layer1"></div>
+
+            <section class="content">
+                <h2>Prøv at sende et billede</h2>
+                <div class="ornament ornament-sm">
+                    <span class="ornament-line"></span>
+                    <span class="ornament-diamond"></span>
+                    <span class="ornament-line"></span>
+                </div>
+
+                <p>
+                    Denne side opfører sig præcis som den rigtige — samme upload, samme
+                    galleri, samme sletning og download. Forskellen er, at den ikke er
+                    låst indtil bryllupsdagen, og at billederne lander et andet sted.
+                </p>
+
+                <dl class="test-facts" id="test-facts"></dl>
+
+                <div id="wed-uploader"></div>
+
+                <noscript>
+                    <p>Billedupload kræver JavaScript. Slå det til i din browser, og prøv igen.</p>
+                </noscript>
+            </section>
+
+            <section class="content">
+                <h2>Testbilleder</h2>
+                <div class="ornament ornament-sm">
+                    <span class="ornament-line"></span>
+                    <span class="ornament-diamond"></span>
+                    <span class="ornament-line"></span>
+                </div>
+
+                <p>
+                    Kun billeder sendt fra denne testside. Tryk på et billede for at se det
+                    stort, og prøv både <em>Download</em> og <em>Slet</em>.
+                </p>
+
+                <div id="wed-gallery"></div>
+            </section>
+
+        </main>
+
+        <footer>
+            <p>Testside · slettes efter brylluppet</p>
+        </footer>
+    </div>
+
+    <script src="../script.js"></script>
+    <script src="../photos.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            WedPhotos.init({ mode: "test" });
+
+            // --- DEVICE FACTS ---
+            // The point of this page is finding out which phone misbehaves, so
+            // say out loud what the phone actually is and which of the three
+            // browser features the upload pipeline depends on are present.
+            // HEIC is the real unknown: Android Chrome may not decode it.
+            const facts = document.getElementById("test-facts");
+
+            const add = (term, value, state) => {
+                const dt = document.createElement("dt");
+                dt.textContent = term;
+                const dd = document.createElement("dd");
+                dd.textContent = value;
+                if (state) dd.className = state;
+                facts.appendChild(dt);
+                facts.appendChild(dd);
+            };
+
+            const yesNo = (ok) => ok ? ["ja", "ok"] : ["nej", "bad"];
+
+            add("Browser", navigator.userAgent);
+            add("Skærm", window.innerWidth + " × " + window.innerHeight +
+                " (dpr " + (window.devicePixelRatio || 1) + ")");
+
+            const bitmap = typeof createImageBitmap === "function";
+            add("Kan afkode billeder (createImageBitmap)", ...yesNo(bitmap));
+
+            const canvas = document.createElement("canvas");
+            const toBlob = typeof canvas.toBlob === "function";
+            add("Kan lave JPEG (canvas.toBlob)", ...yesNo(toBlob));
+
+            let store = false;
+            try {
+                localStorage.setItem("wed_probe", "1");
+                localStorage.removeItem("wed_probe");
+                store = true;
+            } catch (e) { /* private mode */ }
+            add("Kan huske dine billeder (localStorage)", ...yesNo(store));
+
+            add("Forbindelse", navigator.onLine ? "online" : "offline",
+                navigator.onLine ? "ok" : "bad");
+
+            // --- BURGER MENU LOGIC ---
+            const burgerToggle = document.getElementById("burger-toggle");
+            const navLinks = document.querySelector(".navbar ul");
+
+            if (burgerToggle && navLinks) {
+                const closeMenu = () => {
+                    navLinks.classList.remove("nav-active");
+                    burgerToggle.classList.remove("burger-active");
+                };
+
+                const toggleMenu = () => {
+                    navLinks.classList.toggle("nav-active");
+                    burgerToggle.classList.toggle("burger-active");
+                };
+
+                burgerToggle.addEventListener("click", toggleMenu);
+
+                navLinks.addEventListener("click", (e) => {
+                    if (e.target === navLinks) closeMenu();
+                });
+            }
+        });
+    </script>
+
+</body>
+
+</html>

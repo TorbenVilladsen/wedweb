@@ -8,7 +8,12 @@
     --bg: #faf8f4;
     --bg-warm: #f5f0ea;
     --text: #3a3535;
-    --text-light: #6b6565;
+    /* Darker than the #6b6565 used elsewhere on the site: the body copy on this
+       page sits on the pale --bg and only reached 5.4:1, which is fine for a
+       headline but thin for paragraphs read on a phone in daylight. This gets
+       it past 7:1 (WCAG AAA) while staying lighter than --text, so headings
+       still lead. */
+    --text-light: #524c4c;
     --accent-gold: #c4a265;
     --accent-sage: #8a9a78;
     --accent-rose: #c9a4a0;

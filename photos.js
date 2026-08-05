@@ -1,10 +1,13 @@
 /* =========================================================================
    GÆSTEBILLEDER — upload + galleri
    -------------------------------------------------------------------------
-   Shared by /fest/ (open, reached via the printed QR code), /Galleri/
-   (behind the normal ?uid= gate) and /admin/ (behind a real login). Each
-   page just drops in the mount points and calls WedPhotos.init(); everything
-   below builds the UI itself so the pages can never drift apart.
+   Shared by /Galleri/ (behind the normal ?uid= gate) and /admin/ (behind a
+   real login). Each page just drops in the mount points and calls
+   WedPhotos.init(); everything below builds the UI itself so the pages can
+   never drift apart.
+
+   Uploading requires an invitation: there is no open, ungated entry point,
+   so guests arrive through their own personal link and nothing else.
 
    Talks straight to Supabase from the browser — there is no server. Note
    that unlike the Google Apps Script calls in RSVP/index.html we do NOT use
@@ -32,12 +35,32 @@
         BUCKET: "gallery",
         DAY_FOLDER: "uploads/2026-08-15",
 
+        // /test/ writes here instead, so trying the flow on a borrowed phone
+        // never puts a picture of a keyboard in the real wedding gallery. Both
+        // live under uploads/, so the same storage policy covers them and no
+        // Supabase change is needed.
+        TEST_FOLDER: "uploads/test",
+
+        // Where guests send video. The site is images only — a video cannot be
+        // downscaled in the browser the way a photo can, so it would go up at
+        // full size and could still be unplayable for half the guests.
+        VIDEO_EMAIL: "torben-v@hotmail.com",
+
+        // Nothing opens until the front-page countdown hits zero. This is the
+        // same date string as script.js:4 on purpose — if one moves, move both,
+        // or the front page will say "Det er vores bryllup!" while this still
+        // says "not yet". Parsed as local time, exactly like the countdown.
+        OPENS_AT: "August 15, 2026 13:00:00",
+
         MAX_EDGE: 2560,      // longest edge of the stored photo (prints fine at 8x10")
         JPEG_Q: 0.82,
         THUMB_EDGE: 480,
         THUMB_Q: 0.7,
 
-        PAGE_SIZE: 48,
+        // Rows are tiny and the images below them are lazy, so a bigger page
+        // costs almost nothing — but it halves the number of round trips
+        // needed to scroll through several thousand of the photographer's.
+        PAGE_SIZE: 96,
         CONCURRENCY: 2,      // parallel uploads; decoding is always serial
         TIMEOUT_MS: 60000,
         RETRY_DELAYS: [1000, 3000, 8000]
@@ -47,6 +70,7 @@
     const ORPHAN_KEY = "wed_orphans";
     const MINE_KEY = "wed_my_photos";      // { photoId: deleteToken }
     const ADMIN_KEY = "wed_admin_session";
+    const PREVIEW_KEY = "wed_preview";
 
     // --- SMALL HELPERS -----------------------------------------------------
 
@@ -111,8 +135,15 @@
     // what actually saves the file — the <a download> attribute is ignored
     // cross-origin.
     function downloadUrl(photo) {
-        const name = "bryllup-15-08-2026-" + String(photo.id || "").slice(0, 8) + ".jpg";
-        return publicUrl(photo.storage_path) + "?download=" + encodeURIComponent(name);
+        // Guests browse the 2560 px version, but downloading should hand over
+        // the photographer's untouched file where there is one. Guest uploads
+        // have no original_path: the browser already downscaled before sending,
+        // so storage_path IS the best copy that exists.
+        const path = photo.original_path || photo.storage_path;
+        const dot = path.lastIndexOf(".");
+        const ext = dot > -1 ? path.slice(dot) : ".jpg";
+        const name = "bryllup-15-08-2026-" + String(photo.id || "").slice(0, 8) + ext;
+        return publicUrl(path) + "?download=" + encodeURIComponent(name);
     }
 
     // Errors carry a `retryable` flag so the retry loop never hammers away at
@@ -245,21 +276,53 @@
     // The only thing that can identify a guest without an account: a token
     // written to this browser when the photo was uploaded.
 
+    // Kept in memory and written back on a short delay. Doing a full
+    // JSON.parse + JSON.stringify of the whole map on every single upload is
+    // quadratic: by the 500th photo each save is re-serialising everything that
+    // came before it.
+    let mineCache = null;
+    let mineTimer = null;
+
     function myPhotos() {
-        return readStore(MINE_KEY, {});
+        if (!mineCache) mineCache = readStore(MINE_KEY, {});
+        return mineCache;
+    }
+
+    function flushMine() {
+        if (mineTimer) {
+            clearTimeout(mineTimer);
+            mineTimer = null;
+        }
+        if (mineCache) writeStore(MINE_KEY, mineCache);
+    }
+
+    function scheduleMineWrite() {
+        if (mineTimer) return;
+        mineTimer = setTimeout(function () {
+            mineTimer = null;
+            flushMine();
+        }, 400);
     }
 
     function rememberMine(id, token) {
-        const mine = myPhotos();
-        mine[id] = token;
-        writeStore(MINE_KEY, mine);
+        myPhotos()[id] = token;
+        scheduleMineWrite();
     }
 
     function forgetMine(id) {
-        const mine = myPhotos();
-        delete mine[id];
-        writeStore(MINE_KEY, mine);
+        delete myPhotos()[id];
+        scheduleMineWrite();
     }
+
+    // Losing a delete token means a guest can no longer remove their own photo,
+    // so make sure a pending write survives the page going away.
+    window.addEventListener("pagehide", flushMine);
+
+    // Another tab of the same site has its own cache; without this, uploading in
+    // one tab and deleting in another would look like the token never existed.
+    window.addEventListener("storage", function (e) {
+        if (e.key === MINE_KEY) mineCache = null;
+    });
 
     function tokenFor(id) {
         return myPhotos()[id] || null;
@@ -416,19 +479,43 @@
         if (!res.ok) throw httpError(res.status, await res.text().catch(function () { return ""; }));
     }
 
-    async function fetchPage(beforeSeq, wantCount, includeDeleted) {
-        let url = CONFIG.SUPABASE_URL + "/rest/v1/photos" +
-            "?select=id,storage_path,thumb_path,guest_name,width,height,seq,deleted_at" +
-            "&order=seq.desc&limit=" + CONFIG.PAGE_SIZE;
-        if (!includeDeleted) url += "&deleted_at=is.null";
-        if (beforeSeq != null) url += "&seq=lt." + beforeSeq;
+    const BASE_COLUMNS = "id,storage_path,thumb_path,guest_name,width,height,seq,deleted_at";
+
+    // Added by the 4c/4d migration. If the site is deployed before that SQL has
+    // been run, PostgREST answers 400 "column does not exist" — which would take
+    // the whole gallery down over a download link. So ask for them, and if they
+    // are not there yet, drop them once and carry on without.
+    const EXTRA_COLUMNS = "source,original_path";
+    let extraColumns = true;
+
+    /**
+     * @param {string} [folder] restrict to one upload folder. Keeps the real
+     *        gallery and the /test/ gallery from seeing each other's photos.
+     *        Omit for admin, which needs to see everything to clean up.
+     */
+    async function fetchPage(beforeSeq, wantCount, includeDeleted, folder, source) {
+        function buildUrl() {
+            let url = CONFIG.SUPABASE_URL + "/rest/v1/photos" +
+                "?select=" + BASE_COLUMNS + (extraColumns ? "," + EXTRA_COLUMNS : "") +
+                "&order=seq.desc&limit=" + CONFIG.PAGE_SIZE;
+            if (!includeDeleted) url += "&deleted_at=is.null";
+            if (beforeSeq != null) url += "&seq=lt." + beforeSeq;
+            // PostgREST turns * into the SQL % wildcard.
+            if (folder) url += "&storage_path=like." + encodeURIComponent(folder + "/*");
+            if (source && extraColumns) url += "&source=eq." + encodeURIComponent(source);
+            return url;
+        }
 
         const headers = authHeaders();
         if (wantCount) headers.Prefer = "count=exact";
 
         let res;
         try {
-            res = await fetch(url, { headers: headers });
+            res = await fetch(buildUrl(), { headers: headers });
+            if (res.status === 400 && extraColumns) {
+                extraColumns = false;
+                res = await fetch(buildUrl(), { headers: headers });
+            }
         } catch (err) {
             throw netError();
         }
@@ -442,6 +529,31 @@
         }
 
         return { rows: await res.json(), total: total };
+    }
+
+    /**
+     * How many photos exist for one source. Used only to decide whether the
+     * filter buttons are worth showing at all — before the photographer's
+     * import there is nothing to filter, and a tab that always comes back
+     * empty is worse than no tab.
+     * @returns {Promise<number>} 0 when the column does not exist yet.
+     */
+    async function countSource(source) {
+        const url = CONFIG.SUPABASE_URL + "/rest/v1/photos?select=id&limit=1" +
+            "&deleted_at=is.null&source=eq." + encodeURIComponent(source);
+        const headers = authHeaders();
+        headers.Prefer = "count=exact";
+        headers.Range = "0-0";
+        try {
+            const res = await fetch(url, { headers: headers });
+            if (!res.ok) return 0;
+            const range = res.headers.get("content-range");
+            if (!range || range.indexOf("/") === -1) return 0;
+            const parsed = parseInt(range.split("/")[1], 10);
+            return isNaN(parsed) ? 0 : parsed;
+        } catch (err) {
+            return 0;
+        }
     }
 
     // A guest hiding their own photo. The token never leaves this browser
@@ -504,6 +616,127 @@
         writeStore(ORPHAN_KEY, list);
     }
 
+    // --- OPENING TIME ------------------------------------------------------
+
+    function opensAt() {
+        return new Date(CONFIG.OPENS_AT).getTime();
+    }
+
+    /**
+     * Escape hatch so the printed QR card can be tested on a real phone before
+     * the day. Visit any page once with ?forhaandsvisning=1 and this browser
+     * skips the gate from then on; ?forhaandsvisning=0 turns it off again.
+     * Sticky on purpose — a scanned QR carries no query string, so a one-shot
+     * parameter could never unlock the flow we actually want to rehearse.
+     */
+    function previewing() {
+        let stored = false;
+        try {
+            stored = localStorage.getItem(PREVIEW_KEY) === "1";
+        } catch (e) { /* private mode */ }
+
+        const q = new URLSearchParams(window.location.search).get("forhaandsvisning");
+        if (q === null) return stored;
+
+        const on = q !== "0" && q !== "false";
+        try {
+            if (on) localStorage.setItem(PREVIEW_KEY, "1");
+            else localStorage.removeItem(PREVIEW_KEY);
+        } catch (e) { /* private mode */ }
+        return on;
+    }
+
+    function isOpen() {
+        return previewing() || Date.now() >= opensAt();
+    }
+
+    /**
+     * Shown in place of the uploader until the wedding moment arrives. No
+     * clock here on purpose — the countdown lives on the front page, and two
+     * of them on one site is one too many.
+     * @param {Function} onOpen called once the moment arrives, so a phone left
+     *        open through 13:00 unlocks without a reload.
+     */
+    function buildLocked(mount, onOpen) {
+        const wrap = el("div", "wed-locked");
+
+        const ornament = el("div", "ornament ornament-sm");
+        ornament.appendChild(el("span", "ornament-line"));
+        ornament.appendChild(el("span", "ornament-diamond"));
+        ornament.appendChild(el("span", "ornament-line"));
+
+        wrap.appendChild(el("h3", null, "Vi åbner for billeder på selve dagen"));
+        wrap.appendChild(ornament);
+        wrap.appendChild(el("p", null,
+            "Her kan I dele jeres billeder fra dagen. Vi vil også lægge fotografens billeder op her, når de er klar."));
+
+        mount.textContent = "";
+        mount.appendChild(wrap);
+
+        // Nothing ticks any more, so wait out the remaining time in one go
+        // rather than waking up every second. setTimeout tops out at ~24.8
+        // days; beyond that just skip it — nobody leaves a tab open that long,
+        // and a reload re-arms it.
+        const distance = opensAt() - Date.now();
+        if (distance > 0 && distance <= 2147483647) setTimeout(onOpen, distance);
+    }
+
+    /**
+     * The "Billeder fra dagen" heading lives in the page markup, not in here,
+     * so hide the whole enclosing <section> — otherwise the gate leaves a bare
+     * heading over nothing. Inline style, because .content sets an explicit
+     * display that would beat the [hidden] rule.
+     */
+    function setSectionShown(mount, shown) {
+        if (!mount) return;
+        const section = mount.closest("section") || mount;
+        section.style.display = shown ? "" : "none";
+    }
+
+    /**
+     * Videos can't go through the uploader — see CONFIG.VIDEO_EMAIL. Sits with
+     * the uploader rather than in the page markup so it only ever shows once
+     * the page has opened; before that the whole uploader is replaced by the
+     * "we open on the day" card, and pointing guests at WeTransfer early would
+     * just invite video before there is any wedding to film.
+     */
+    function buildVideoNote() {
+        const wrap = el("div", "wed-video");
+
+        const lead = el("p", "wed-video-lead");
+        lead.appendChild(document.createTextNode("Har I videoer? Send dem til os med "));
+        const link = el("a", null, "WeTransfer");
+        link.href = "https://wetransfer.com";
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        lead.appendChild(link);
+        lead.appendChild(document.createTextNode(" — video kan ikke sendes her på siden."));
+        wrap.appendChild(lead);
+
+        const guide = el("details", "wed-video-guide");
+        guide.appendChild(el("summary", null, "Sådan gør du"));
+
+        const steps = el("ol");
+        [
+            "Gå ind på wetransfer.com. Du skal hverken oprette dig eller hente en app.",
+            "Tryk på plusset, og vælg de videoer, du vil sende.",
+            "Skriv vores mail i feltet “send til”: " + CONFIG.VIDEO_EMAIL,
+            "Skriv din egen mail, så vi kan se, hvem de er fra.",
+            "Tryk “Transfer”. Så får vi en mail, når de er kommet frem."
+        ].forEach(function (text) {
+            steps.appendChild(el("li", null, text));
+        });
+        guide.appendChild(steps);
+
+        guide.appendChild(el("p", "wed-fineprint",
+            "Gratis kan man sende op til 3 GB — det er rigtig meget video. " +
+            "Linket holder kun et par dage, så send dem hellere med det samme, " +
+            "end at gemme det til næste weekend."));
+
+        wrap.appendChild(guide);
+        return wrap;
+    }
+
     // --- UPLOADER ----------------------------------------------------------
 
     function buildUploader(mount, state) {
@@ -539,12 +772,6 @@
         summary.hidden = true;
         const list = el("ul", "wed-list");
 
-        const help = el("details", "wed-help");
-        help.appendChild(el("summary", null, "Problemer med at sende?"));
-        help.appendChild(el("p", null,
-            "Prøv at slå wifi fra og bruge mobildata i stedet — det hjælper som regel til fester, " +
-            "hvor mange er på det samme netværk. Bliv på siden, indtil billederne er sendt."));
-
         wrap.appendChild(nameRow);
         wrap.appendChild(cta);
         wrap.appendChild(fileInput);
@@ -552,7 +779,7 @@
         wrap.appendChild(banner);
         wrap.appendChild(summary);
         wrap.appendChild(list);
-        wrap.appendChild(help);
+        wrap.appendChild(buildVideoNote());
         mount.appendChild(wrap);
 
         if (!isConfigured()) {
@@ -684,9 +911,16 @@
         }
 
         function render() {
+            // Counted in one pass rather than two filter() sweeps: render() runs
+            // after every finished photo, so scanning the list each time is
+            // quadratic over a large batch.
             const total = items.length;
-            const failed = items.filter(function (i) { return i.status === "failed"; }).length;
-            const done = items.filter(function (i) { return i.status === "done"; }).length;
+            let failed = 0;
+            let done = 0;
+            for (let i = 0; i < total; i++) {
+                if (items[i].status === "failed") failed++;
+                else if (items[i].status === "done") done++;
+            }
 
             if (!total) {
                 ui.summary.hidden = true;
@@ -776,8 +1010,11 @@
 
                 if (!item.storedPath) {
                     const fileId = uuid();
-                    const fullPath = CONFIG.DAY_FOLDER + "/" + fileId + ".jpg";
-                    const thumbPath = CONFIG.DAY_FOLDER + "/" + fileId + "_t.jpg";
+                    // createQueue() has no closure over buildUploader's state —
+                    // it arrives as ui.state.
+                    const folder = (ui.state && ui.state.folder) || CONFIG.DAY_FOLDER;
+                    const fullPath = folder + "/" + fileId + ".jpg";
+                    const thumbPath = folder + "/" + fileId + "_t.jpg";
 
                     setStatus(item, "Sender… 0 %");
                     await withRetry(function () {
@@ -828,6 +1065,13 @@
                 item.status = "done";
                 setStatus(item, "✓ Sendt", "is-done");
 
+                // The two encoded Blobs are ~740 KB per photo and were only kept
+                // so a retry could skip re-encoding. Once the row exists there is
+                // nothing left to retry, and holding them turns a big batch into
+                // hundreds of megabytes of dead weight.
+                // (The preview's blob URL is already revoked by thumb.onload.)
+                item.processed = null;
+
                 if (window.WedPhotos._onUploaded) {
                     window.WedPhotos._onUploaded({
                         id: item.photoId,
@@ -839,6 +1083,9 @@
                     });
                 }
             } catch (err) {
+                // Guests never see the console, but /test/ exists precisely so a
+                // misbehaving phone can be diagnosed — keep the real error.
+                console.error("[wed] upload failed:", err && err.message, err);
                 item.status = "failed";
                 item.retryBtn.hidden = false;
                 setStatus(item, messageFor(err), "is-failed");
@@ -880,9 +1127,12 @@
     function buildGallery(mount, options) {
         const opts = options || {};
         const wrap = el("div", "wed-gallery");
+        const filters = el("div", "gallery-filters");
+        filters.hidden = true;          // shown only once we know it is useful
         const count = el("p", "gallery-count");
         const grid = el("div", "photo-grid");
         const sentinel = el("div", "gallery-sentinel");
+        wrap.appendChild(filters);
         wrap.appendChild(count);
         wrap.appendChild(grid);
         wrap.appendChild(sentinel);
@@ -899,6 +1149,40 @@
         let loading = false;
         let total = null;
         let includeDeleted = false;
+        let source = null;              // null = alle
+
+        // The photographer's set is thousands of images and lands on top of
+        // everything, so without this the guests' own photos are pushed
+        // hundreds of pages down and effectively disappear.
+        function buildFilters() {
+            const choices = [
+                { value: null, label: "Alle" },
+                { value: "photographer", label: "Fotografen" },
+                { value: "guest", label: "Gæsterne" }
+            ];
+            const buttons = [];
+
+            choices.forEach(function (choice) {
+                const button = el("button", "gallery-filter", choice.label);
+                button.type = "button";
+                if (choice.value === source) button.classList.add("is-active");
+                button.addEventListener("click", function () {
+                    if (source === choice.value) return;
+                    source = choice.value;
+                    buttons.forEach(function (b) { b.classList.remove("is-active"); });
+                    button.classList.add("is-active");
+                    reload();
+                });
+                buttons.push(button);
+                filters.appendChild(button);
+            });
+
+            countSource("photographer").then(function (n) {
+                // Nothing imported yet — leave the filter hidden rather than
+                // offering a tab that comes back empty.
+                if (n > 0) filters.hidden = false;
+            });
+        }
 
         const lightbox = buildLightbox(photos, {
             onRemoved: removePhoto,
@@ -963,7 +1247,8 @@
             sentinel.textContent = "Indlæser flere…";
 
             try {
-                const page = await fetchPage(lowestSeq, total == null, includeDeleted);
+                const page = await fetchPage(lowestSeq, total == null, includeDeleted,
+                    opts.folder, source);
                 if (page.total != null) {
                     total = page.total;
                     renderCount();
@@ -976,9 +1261,13 @@
 
                 if (page.rows.length < CONFIG.PAGE_SIZE) {
                     exhausted = true;
-                    sentinel.textContent = photos.length
-                        ? "Det var alle billeder ❤️"
-                        : "Der er ingen billeder endnu — vær den første!";
+                    if (photos.length) {
+                        sentinel.textContent = "Det var alle billeder ❤️";
+                    } else if (source === "photographer") {
+                        sentinel.textContent = "Fotografens billeder er der ikke endnu.";
+                    } else {
+                        sentinel.textContent = "Der er ingen billeder endnu — vær den første!";
+                    }
                 } else {
                     sentinel.textContent = "";
                 }
@@ -1005,10 +1294,14 @@
         }, { rootMargin: "600px 0px" });
         observer.observe(sentinel);
 
+        buildFilters();
         loadMore();
 
         // Let a guest see their own photo land at the top straight away.
         window.WedPhotos._onUploaded = function (photo) {
+            // A guest's new photo must not appear while the photographer's
+            // photos are the ones being shown.
+            if (source === "photographer") return;
             addTile(photo, true);
             if (total != null) {
                 total++;
@@ -1095,9 +1388,17 @@
             const photo = photos[i];
 
             img.src = publicUrl(photo.storage_path);
-            img.alt = photo.guest_name ? "Billede delt af " + photo.guest_name : "Billede fra brylluppet";
 
-            let text = photo.guest_name ? "Delt af " + photo.guest_name : "";
+            // The photographer's images carry no guest_name — saying nothing at
+            // all would read as a photo nobody will admit to.
+            const byline = photo.source === "photographer"
+                ? "Fotografens billede"
+                : (photo.guest_name ? "Delt af " + photo.guest_name : "");
+
+            img.alt = byline || "Billede fra brylluppet";
+
+            let text = byline;
+            if (photo.original_path) text = (text ? text + " · " : "") + "Download giver originalen";
             if (photo.deleted_at) text = (text ? text + " · " : "") + "Slettet af gæsten";
             caption.textContent = text;
 
@@ -1313,22 +1614,48 @@
     window.WedPhotos = {
         /**
          * @param {Object} options
-         * @param {string} [options.mode]  "party" | "guest" | "admin"
+         * @param {string} [options.mode]  "guest" | "test" | "admin"
+         *        guest — the real gallery, locked until the wedding starts.
+         *        test  — same UI, never locked, reads and writes a separate
+         *                folder so nothing leaks into the real gallery.
+         *        admin — every photo from every folder, deleted ones included.
          * @param {string} [options.name]  known guest name, used to prefill the credit field
          */
         init: function (options) {
             const opts = options || {};
-            const state = { mode: opts.mode || "party", name: opts.name || "" };
+            const state = { mode: opts.mode || "guest", name: opts.name || "" };
             const admin = state.mode === "admin";
+            const test = state.mode === "test";
+
+            // Admin deliberately gets no folder filter: it is the one place
+            // that has to be able to see and purge test uploads too.
+            const folder = admin ? null : (test ? CONFIG.TEST_FOLDER : CONFIG.DAY_FOLDER);
+            state.folder = folder;
 
             const uploadMount = document.getElementById("wed-uploader");
             const galleryMount = document.getElementById("wed-gallery");
             const adminMount = document.getElementById("wed-admin");
 
-            if (uploadMount && !admin) buildUploader(uploadMount, state);
+            // Before the wedding there is nothing to send and nothing to look
+            // at. Admin and test are exempt — both exist to be used early.
+            if (!admin && !test && !isOpen()) {
+                setSectionShown(galleryMount, false);
+                if (uploadMount) {
+                    buildLocked(uploadMount, function () {
+                        window.WedPhotos.init(opts);
+                    });
+                }
+                return;
+            }
+            setSectionShown(galleryMount, true);
+
+            if (uploadMount && !admin) {
+                uploadMount.textContent = "";   // may hold the countdown card
+                buildUploader(uploadMount, state);
+            }
 
             const gallery = galleryMount
-                ? buildGallery(galleryMount, { admin: admin && isAdmin() })
+                ? buildGallery(galleryMount, { admin: admin && isAdmin(), folder: folder })
                 : null;
 
             if (adminMount) buildAdmin(adminMount, gallery);

@@ -1,8 +1,12 @@
 # Billedupload — opsætning og drift
 
-Gæsterne scanner QR-koden på bordet, lander på **anne-og-torben.dk/fest** og sender
-billeder direkte fra telefonen. Billederne ligger hos **Supabase**, og galleriet
-henter dem derfra.
+Gæsterne åbner **Galleri**-siden via deres eget invitationslink og sender billeder
+direkte fra telefonen. Billederne ligger hos **Supabase**, og galleriet henter dem
+derfra.
+
+Der er ingen åben side og ingen fælles QR-kode: upload kræver et gyldigt `?uid=`,
+præcis som resten af siden. Gæster uden invitation — kærester, børn og andre — kan
+altså ikke selv sende billeder, men kan låne en telefon af en, der er inviteret.
 
 Der er ingen server i dette projekt — siden er ren HTML på GitHub Pages. Derfor
 taler browseren direkte med Supabase, og alt sikkerhed ligger i de regler
@@ -222,6 +226,135 @@ se dem, gæsterne har fjernet, og rydde filerne op bagefter.
 
 ---
 
+## 4c. Hvor billedet kommer fra (`source`)
+
+**Kør denne blok, før I lægger fotografens billeder ind.** Bagefter kan man ikke
+længere se, hvad der kom fra hvem — og med 3.000–5.000 billeder fra fotografen
+drukner gæsternes egne billeder, hvis de ikke kan skilles ad.
+
+```sql
+alter table public.photos
+  add column if not exists source text not null default 'guest';
+
+alter table public.photos
+  drop constraint if exists photos_source_ok;
+alter table public.photos
+  add constraint photos_source_ok check (source in ('guest', 'photographer'));
+
+-- Galleriet henter altid nyeste først, og skal kunne gøre det for én kilde ad
+-- gangen uden at læse hele tabellen igennem.
+create index if not exists photos_source_seq_idx
+  on public.photos (source, seq desc);
+
+-- Gæsterne må gerne SE hvor et billede kommer fra …
+grant select (id, seq, storage_path, thumb_path, guest_name,
+              width, height, taken_at, created_at, approved, deleted_at, source)
+  on public.photos to anon;
+```
+
+Læg mærke til, at `source` **ikke** kommer med i `grant insert (...)`. Det er
+med vilje: alt, der uploades fra browseren, får automatisk `'guest'`, og ingen
+kan udgive deres eget billede for at være fotografens. Kun importen — som kører
+med `service_role`-nøglen fra jeres egen computer — sætter `'photographer'`.
+
+Eksisterende billeder får `'guest'`, hvilket er det rigtige: alt, der ligger der
+nu, er sendt fra en browser.
+
+---
+
+## 4d. Fotografens originaler
+
+Fotografens billeder lægges op i **tre** størrelser:
+
+| Fil | Størrelse | Bruges til |
+|---|---|---|
+| miniature | 480 px, ca. 40 KB | galleriets små felter |
+| visning | 2560 px, ca. 700 KB | når man trykker på et billede |
+| original | som fotografen leverede den | knappen **Download** |
+
+Gæsterne henter altså ikke 15 MB, hver gang de kigger på et billede — men det er
+originalen, de får, hvis de downloader den. Kør denne blok sammen med 4c:
+
+```sql
+-- Stien til originalen. Tom for gæsternes egne billeder: der ER ingen original
+-- ud over den, browseren allerede har skaleret ned.
+alter table public.photos add column if not exists original_path text;
+
+-- Gør importen idempotent: samme fil to gange giver samme sum, og så springes
+-- den over i stedet for at blive lagt ind igen. Det er det, der gør, at man kan
+-- afbryde importen af 5.000 billeder og bare starte den igen.
+alter table public.photos add column if not exists import_hash text;
+create unique index if not exists photos_import_hash_key
+  on public.photos (import_hash) where import_hash is not null;
+
+grant select (id, seq, storage_path, thumb_path, guest_name,
+              width, height, taken_at, created_at, approved, deleted_at,
+              source, original_path)
+  on public.photos to anon;
+```
+
+`import_hash` bliver med vilje **ikke** delt ud til `anon` — den skal ingen
+udefra kunne læse, og `original_path` er den eneste nye kolonne, browseren har
+brug for.
+
+> **Kør 4c og 4d, før I henter siden ned igen.** Galleriet spørger efter de nye
+> kolonner. Det klarer sig, hvis de mangler (så mister man bare download af
+> originalen), men kør dem nu, så I ikke skal huske det senere.
+
+### Sådan lægger I fotografens billeder ind
+
+Fotografens 3.000–5.000 billeder skal **ikke** sendes gennem hjemmesiden. En
+browserfane, der arbejder i to timer uden at kunne fortsætte, hvis den lukkes,
+er den forkerte måde. Brug i stedet scriptet, der ligger i projektet.
+
+Første gang — hent Pillow, som scriptet bruger til at skalere billederne:
+
+```bash
+cd ~/weddingWebsiteReworked/wedweb
+python3 -m venv .venv
+.venv/bin/pip install Pillow
+```
+
+Hent så **service_role**-nøglen: **Project Settings → API → service_role**.
+
+> Den nøgle kan alt: læse, ændre og slette alt i projektet. Den må **aldrig**
+> ligge i koden, i git eller på hjemmesiden. Den skrives kun ind i terminalen,
+> som her, og forsvinder, når vinduet lukkes.
+
+```bash
+export SUPABASE_URL="https://bpyjzpxnqzjiwzzshscs.supabase.co"
+export SUPABASE_SERVICE_KEY="ey…"      # service_role, ikke anon
+```
+
+Kør en prøvetur på 20 billeder først — den behandler dem, men lægger intet op:
+
+```bash
+.venv/bin/python tools/import_fotograf.py ~/Billeder/bryllup --limit 20 --dry-run
+```
+
+Ser det rigtigt ud, så kør resten:
+
+```bash
+.venv/bin/python tools/import_fotograf.py ~/Billeder/bryllup
+```
+
+Scriptet:
+
+- går også undermapper igennem og springer alt, der ikke er et billede, over
+- læser **optagetidspunktet** i billedets EXIF, så rækkefølgen bliver rigtig
+  (filens dato duer ikke — kopierer man 5.000 filer, får de alle dagens dato)
+- vender portrætbilleder rigtigt
+- lægger tre filer op pr. billede: miniature, visning og originalen
+- markerer dem som `source = 'photographer'`
+- **kan afbrydes.** Tryk Ctrl-C, luk computeren, kør den igen i morgen — den
+  springer over alt, der allerede er kommet op. Samme mappe to gange giver
+  altså ikke dobbelte billeder.
+
+Går noget galt undervejs, skriver den hvilke filer det gik ud over og slutter
+med at bede dig køre den igen. Det er sikkert at gøre.
+
+---
+
 ## 5. Sæt de to værdier ind i koden
 
 1. Tandhjulet **Project Settings** → **API** (kan hedde **API Keys**).
@@ -261,7 +394,7 @@ server. Se nødbremsen nedenfor.
 ## 6. Før brylluppet — vigtigt
 
 **Gratis Supabase-projekter sættes på pause efter ca. 7 dages inaktivitet.**
-Hvis siden bygges i god tid og ingen rører den, er QR-koden død på selve dagen.
+Hvis siden bygges i god tid og ingen rører den, er billedsiden død på selve dagen.
 
 - **Opgradér til Pro (ca. $25/md.) senest en uge før 15. august 2026.**
   Pro-projekter sættes aldrig på pause, og du får plads nok til billederne.
@@ -303,11 +436,112 @@ Table Editor.
 
 ---
 
+## 7b. Siden åbner først på dagen
+
+`/Galleri/` er lukket indtil **15. august 2026 kl. 13.00** — altså præcis når
+nedtællingen på forsiden rammer nul. Indtil da får gæsterne en pæn besked i
+stedet for upload-knappen, og galleriet er skjult. Selve nedtællingen står kun
+på forsiden; den gentages ikke her. Klokkeslættet står ét sted i koden:
+
+```js
+// photos.js
+OPENS_AT: "August 15, 2026 13:00:00",
+```
+
+Skal tidspunktet flyttes, skal det **også** flyttes i `script.js` (linje 4),
+ellers siger forsiden "Det er vores bryllup!", mens billedsiden stadig siger
+"vi åbner senere".
+
+`/admin/` er ikke omfattet — der kan I komme ind når som helst.
+
+### Sådan tester I det før dagen
+
+Åbn denne adresse **én gang** på den telefon, I vil teste med — brug jeres eget
+`?uid=` fra invitationen:
+
+```
+https://anne-og-torben.dk/Galleri/?uid=JERES-UID&forhaandsvisning=1
+```
+
+Så husker netop den telefon indstillingen, og I kan køre hele forløbet igennem,
+selvom der er dage til brylluppet. Gæsternes telefoner er ikke berørt — de har
+aldrig set adressen.
+
+Slå det fra igen med:
+
+```
+https://anne-og-torben.dk/Galleri/?uid=JERES-UID&forhaandsvisning=0
+```
+
+> Husk at slå det fra på jeres egne telefoner, når I er færdige med at teste —
+> ellers opdager I ikke, hvis låsen driller for gæsterne.
+
+---
+
+## 7bb. Video — siden tager kun billeder
+
+Der kan kun sendes **billeder** på siden. En video kan ikke skaleres ned i
+browseren, sådan som et billede kan, så den ville blive sendt i fuld størrelse
+(en video på 30 sekunder fra en iPhone fylder 65–175 MB) — og en iPhone-video
+kan oven i købet være uafspillelig på en Android-telefon. Derfor er video holdt
+udenfor med vilje.
+
+Under upload-knappen står der i stedet:
+
+> Har I videoer? Send dem til os med WeTransfer — video kan ikke sendes her på siden.
+
+med en lille foldbar vejledning. Linjen vises **kun**, når siden er åbnet — før
+den tid er hele upload-delen erstattet af "vi åbner på dagen".
+
+Mailadressen står ét sted i koden:
+
+```js
+// photos.js
+VIDEO_EMAIL: "torben-v@hotmail.com",
+```
+
+> **Husk:** et gratis WeTransfer-link holder kun et par dage. Hent videoerne ned
+> med det samme, I får mailen — ellers er de væk.
+
+---
+
+## 7c. Testsiden
+
+`/test/` er en kopi af billedsiden, som I kan bruge til at prøve det hele af på
+forskellige telefoner. Den adskiller sig på tre punkter:
+
+- **Ingen lås.** Den virker allerede nu, uden `?forhaandsvisning=`.
+- **Ingen invitation.** Der skal ikke `?uid=` på. I kan sende adressen til en
+  ven med en Android-telefon og bede dem prøve.
+- **Egen mappe.** Billederne havner i `uploads/test/` i stedet for
+  `uploads/2026-08-15/`, og de kan **ikke** ses i det rigtige galleri.
+
+```
+https://anne-og-torben.dk/test/
+```
+
+Øverst på siden står der, hvilken browser og skærm telefonen har, og om de tre
+ting, upload'en bygger på, er til stede. Det er dem, I skal kigge på, hvis en
+telefon driller — især **"Kan afkode billeder"**, som er den, der kan sige nej
+på en Android-telefon med HEIC-billeder.
+
+### Ryd op bagefter
+
+Testbillederne ligger i samme tabel som de rigtige, så `/admin/` viser dem.
+Log ind i `/admin/`, slet dem der, og slet til sidst hele `test`-mappen fra
+projektet, når I ikke skal bruge den mere.
+
+> Så længe `/test/` ligger på siden, kan enhver, der kender adressen, sende
+> billeder til `uploads/test/`. Det er derfor, den skal væk igen — og derfor
+> den ikke deler mappe med de rigtige billeder.
+
+---
+
 ## 8. Tjekliste før dagen
 
 Kør den ca. 2 uger før — og igen 2 dage før.
 
-- [ ] Rigtig iPhone, via den **printede** QR-kode: vælg 10 billeder → alle kommer
+- [ ] Rigtig iPhone, via et rigtigt invitationslink: vælg 10 billeder → alle kommer
       frem, vender rigtigt og står i rigtig rækkefølge.
 - [ ] Rigtig Android-telefon med **HEIF/"høj effektivitet"** slået til. Det er den
       eneste måde at afklare, om Android kan sende de billeder.
@@ -316,6 +550,11 @@ Kør den ca. 2 uger før — og igen 2 dage før.
 - [ ] Prøv at slette noget fra browserens konsol med anon-nøglen → skal give 403.
 - [ ] Prøv at sende en `.png` og en fil på 20 MB → skal afvises.
 - [ ] Galleriet på både mobil og computer: scroll forbi 3 sider, åbn et billede, swipe.
-- [ ] Åbn `/fest/` uden `?uid=` og tryk på alle menupunkter → ingen "Adgang nægtet".
-- [ ] Det **printede** kort kan scannes fra ca. 40 cm i dæmpet, varmt restaurantlys.
+- [ ] Åbn `/Galleri/` **uden** `?uid=` → skal give "Adgang nægtet".
 - [ ] Projektet er på **Pro** og ikke på pause. Der er plads nok.
+- [ ] Åbn `/Galleri/?uid=…` på en telefon, der **ikke** er sat til forhåndsvisning →
+      der skal stå "Vi åbner for billeder på selve dagen", og galleriet skal være skjult.
+- [ ] Slå forhåndsvisning fra igen på jeres egne telefoner
+      (`&forhaandsvisning=0`), når I er færdige med at teste.
+- [ ] Slet testbillederne i `/admin/`, og fjern mappen `test/` fra projektet,
+      når I er færdige med at teste på telefonerne.

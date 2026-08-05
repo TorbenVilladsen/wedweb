@@ -1,7 +1,7 @@
 /* =========================================================================
    GÆSTEBILLEDER — upload + galleri
    -------------------------------------------------------------------------
-   Shared by /fest/ and /Galleri/. Deliberately uses the existing design
+   Shared by /Galleri/ and /admin/. Deliberately uses the existing design
    tokens (--accent-gold, --font-heading, …) instead of redeclaring them, so
    it inherits whichever page stylesheet loaded first.
    ========================================================================= */
@@ -288,22 +288,79 @@
     color: #fff;
 }
 
-/* --- Help disclosure --- */
-.wed-help {
-    margin-top: 2rem;
+/* --- Locked until the countdown reaches zero --- */
+.wed-locked {
+    margin-top: 1.5rem;
+    padding: 2.4rem 1.5rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(196, 162, 101, 0.25);
+    text-align: center;
+}
+
+.wed-locked h3 {
+    font-family: var(--font-heading);
+    font-size: 1.6rem;
+    font-weight: 400;
+    font-style: italic;
+    margin-bottom: 0.2rem;
+}
+
+.wed-locked p {
+    font-size: 1rem;
+    color: var(--text-light);
+    max-width: 34rem;
+    margin-inline: auto;
+}
+
+/* --- Video: not here, use WeTransfer --- */
+.wed-video {
+    margin-top: 2.4rem;
+    padding-top: 1.6rem;
+    border-top: 1px solid rgba(196, 162, 101, 0.28);
+}
+
+.wed-video-lead {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--text-light);
+}
+
+.wed-video-lead a {
+    color: var(--accent-gold);
+    text-underline-offset: 3px;
+}
+
+.wed-video-guide {
+    margin-top: 0.8rem;
     font-size: 0.85rem;
     color: var(--text-light);
 }
 
-.wed-help summary {
+.wed-video-guide summary {
     cursor: pointer;
     letter-spacing: 0.5px;
     color: var(--accent-gold);
 }
 
-.wed-help p {
-    margin-top: 0.7rem;
-    font-size: 0.85rem;
+.wed-video-guide ol {
+    margin: 0.9rem 0 0;
+    /* Numbers outside the text block would sit under the centred column on
+       the content pages, so keep the list left-aligned in its own box. */
+    padding-left: 1.4rem;
+    text-align: left;
+    max-width: 30rem;
+    margin-inline: auto;
+}
+
+.wed-video-guide li {
+    margin-bottom: 0.5rem;
+    line-height: 1.65;
+}
+
+.wed-video-guide .wed-fineprint {
+    margin-top: 1rem;
+    font-size: 0.8rem;
     line-height: 1.7;
 }
 
@@ -324,6 +381,39 @@
     color: var(--text-light);
 }
 
+/* --- Whose photos: alle / fotografen / gæsterne --- */
+.gallery-filters {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.2rem;
+}
+
+.gallery-filter {
+    padding: 0.5rem 1.2rem;
+    border: 1px solid rgba(196, 162, 101, 0.5);
+    border-radius: 50px;
+    background: none;
+    color: var(--text-light);
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.gallery-filter:hover {
+    color: var(--text);
+}
+
+.gallery-filter.is-active {
+    background: var(--accent-gold);
+    border-color: var(--accent-gold);
+    color: #fff;
+}
+
 .photo-grid {
     display: grid;
     gap: 0.5rem;
@@ -339,6 +429,15 @@
     background: rgba(196, 162, 101, 0.08);
     aspect-ratio: 1;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* With the photographer's images the grid runs to several thousand tiles.
+       This lets the browser skip layout and paint for everything off screen,
+       which is most of the win of a virtualised list for none of the risk —
+       and it simply does nothing on browsers that don't support it.
+       contain-intrinsic-size must be given, or skipped tiles collapse to zero
+       height and the scrollbar jumps around as you scroll. */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 200px;
 }
 
 .photo-tile:hover {

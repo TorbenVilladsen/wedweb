@@ -1,0 +1,6 @@
+# The import tool's virtual environment (see docs/supabase.md).
+.venv/
+__pycache__/
+*.pyc
+
+.DS_Store

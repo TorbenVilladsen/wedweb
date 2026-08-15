@@ -35,6 +35,14 @@
         BUCKET: "gallery",
         DAY_FOLDER: "uploads/2026-08-15",
 
+        // Speeches and entertainment live in their own bucket, written only by
+        // tools/import_video.py with the service_role key. Keeping them apart
+        // is what lets `gallery` stay capped at 10 MB and image/jpeg: that cap
+        // is the one guest-upload limit a browser cannot argue with, and a
+        // bucket big enough for video would also accept a 2 GB file named
+        // ".jpg". Nothing here is uploaded from a browser, ever.
+        VIDEO_BUCKET: "video",
+
         // /test/ writes here instead, so trying the flow on a borrowed phone
         // never puts a picture of a keyboard in the real wedding gallery. Both
         // live under uploads/, so the same storage policy covers them and no
@@ -127,8 +135,16 @@
             CONFIG.SUPABASE_ANON_KEY.indexOf("DIN_ANON_KEY") === -1;
     }
 
-    function publicUrl(path) {
-        return CONFIG.SUPABASE_URL + "/storage/v1/object/public/" + CONFIG.BUCKET + "/" + path;
+    // Videos and their poster frames sit in a different bucket from the
+    // photos, so every URL needs to know which kind of row it came from.
+    // Defaulting to the photo bucket keeps every existing call site correct.
+    function bucketFor(kind) {
+        return kind === "video" ? CONFIG.VIDEO_BUCKET : CONFIG.BUCKET;
+    }
+
+    function publicUrl(path, kind) {
+        return CONFIG.SUPABASE_URL + "/storage/v1/object/public/" +
+            bucketFor(kind) + "/" + path;
     }
 
     // ?download= makes Supabase send Content-Disposition: attachment, which is
@@ -141,9 +157,32 @@
         // so storage_path IS the best copy that exists.
         const path = photo.original_path || photo.storage_path;
         const dot = path.lastIndexOf(".");
-        const ext = dot > -1 ? path.slice(dot) : ".jpg";
-        const name = "bryllup-15-08-2026-" + String(photo.id || "").slice(0, 8) + ext;
-        return publicUrl(path) + "?download=" + encodeURIComponent(name);
+        const ext = dot > -1 ? path.slice(dot) : (photo.kind === "video" ? ".mp4" : ".jpg");
+
+        // Ten files called bryllup-…-a1b2c3d4.mp4 in a downloads folder tell
+        // you nothing, so a video is named after its title where it has one.
+        const label = photo.kind === "video" && photo.title
+            ? slug(photo.title)
+            : String(photo.id || "").slice(0, 8);
+
+        const name = "bryllup-15-08-2026-" + label + ext;
+        return publicUrl(path, photo.kind) + "?download=" + encodeURIComponent(name);
+    }
+
+    // mm:ss, so a tile can say how long the speech is before anyone commits to
+    // it on mobile data.
+    function runtime(seconds) {
+        const s = Math.max(0, Math.round(seconds || 0));
+        return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+    }
+
+    function slug(text) {
+        return String(text)
+            .toLowerCase()
+            .replace(/æ/g, "ae").replace(/ø/g, "oe").replace(/å/g, "aa")
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 40) || "video";
     }
 
     // Errors carry a `retryable` flag so the retry loop never hammers away at
@@ -488,21 +527,44 @@
     const EXTRA_COLUMNS = "source,original_path";
     let extraColumns = true;
 
+    // The video migration (4e) is a separate step, run much later than 4c/4d.
+    // Keeping it a separate tier matters: lump them together and a project
+    // that has run 4c/4d but not 4e would drop `original_path` too, quietly
+    // handing out the 2560 px copy where the photographer's original exists.
+    const VIDEO_COLUMNS = "kind,duration_s,title";
+    let videoColumns = true;
+
+    function selectList() {
+        return BASE_COLUMNS +
+            (extraColumns ? "," + EXTRA_COLUMNS : "") +
+            (videoColumns ? "," + VIDEO_COLUMNS : "");
+    }
+
     /**
      * @param {string} [folder] restrict to one upload folder. Keeps the real
      *        gallery and the /test/ gallery from seeing each other's photos.
      *        Omit for admin, which needs to see everything to clean up.
+     * @param {{source?: string, kind?: string}} [filter] which tab is showing.
+     *        `source` picks guest vs photographer, `kind` picks the videos.
+     *        Omit for "Alle".
      */
-    async function fetchPage(beforeSeq, wantCount, includeDeleted, folder, source) {
+    async function fetchPage(beforeSeq, wantCount, includeDeleted, folder, filter) {
         function buildUrl() {
             let url = CONFIG.SUPABASE_URL + "/rest/v1/photos" +
-                "?select=" + BASE_COLUMNS + (extraColumns ? "," + EXTRA_COLUMNS : "") +
+                "?select=" + selectList() +
                 "&order=seq.desc&limit=" + CONFIG.PAGE_SIZE;
             if (!includeDeleted) url += "&deleted_at=is.null";
             if (beforeSeq != null) url += "&seq=lt." + beforeSeq;
             // PostgREST turns * into the SQL % wildcard.
             if (folder) url += "&storage_path=like." + encodeURIComponent(folder + "/*");
-            if (source && extraColumns) url += "&source=eq." + encodeURIComponent(source);
+            // Filtering on a column the migration has not created yet would
+            // 400 the whole page, so each filter waits for its own tier.
+            if (filter && filter.source && extraColumns) {
+                url += "&source=eq." + encodeURIComponent(filter.source);
+            }
+            if (filter && filter.kind && videoColumns) {
+                url += "&kind=eq." + encodeURIComponent(filter.kind);
+            }
             return url;
         }
 
@@ -512,8 +574,12 @@
         let res;
         try {
             res = await fetch(buildUrl(), { headers: headers });
-            if (res.status === 400 && extraColumns) {
-                extraColumns = false;
+            // PostgREST does not say WHICH column it did not recognise, so
+            // give up the newest migration first and only fall back further if
+            // that was not the problem. At most two extra round trips, once.
+            while (res.status === 400 && (videoColumns || extraColumns)) {
+                if (videoColumns) videoColumns = false;
+                else extraColumns = false;
                 res = await fetch(buildUrl(), { headers: headers });
             }
         } catch (err) {
@@ -532,15 +598,18 @@
     }
 
     /**
-     * How many photos exist for one source. Used only to decide whether the
-     * filter buttons are worth showing at all — before the photographer's
-     * import there is nothing to filter, and a tab that always comes back
-     * empty is worse than no tab.
+     * How many rows match one filter. Used only to decide whether the filter
+     * buttons are worth showing at all — before the photographer's import, and
+     * before the videos are uploaded, there is nothing to filter, and a tab
+     * that always comes back empty is worse than no tab.
+     * @param {{source?: string, kind?: string}} filter
      * @returns {Promise<number>} 0 when the column does not exist yet.
      */
-    async function countSource(source) {
-        const url = CONFIG.SUPABASE_URL + "/rest/v1/photos?select=id&limit=1" +
-            "&deleted_at=is.null&source=eq." + encodeURIComponent(source);
+    async function countMatching(filter) {
+        let url = CONFIG.SUPABASE_URL + "/rest/v1/photos?select=id&limit=1" +
+            "&deleted_at=is.null";
+        if (filter.source) url += "&source=eq." + encodeURIComponent(filter.source);
+        if (filter.kind) url += "&kind=eq." + encodeURIComponent(filter.kind);
         const headers = authHeaders();
         headers.Prefer = "count=exact";
         headers.Range = "0-0";
@@ -582,10 +651,18 @@
     async function purgePhoto(photo) {
         if (!(await ensureSession())) throw new Error("not signed in");
 
-        for (const path of [photo.storage_path, photo.thumb_path]) {
+        // A video and its poster live in the video bucket; everything else in
+        // the photo bucket. Delete against the wrong one answers 404 and the
+        // files would quietly survive the row.
+        const bucket = bucketFor(photo.kind);
+
+        // original_path belongs in here too: it is the photographer's untouched
+        // file and by far the biggest of the three, so leaving it behind means
+        // "slet permanent" quietly keeps the largest part of the photo.
+        for (const path of [photo.storage_path, photo.thumb_path, photo.original_path]) {
             if (!path) continue;
             try {
-                await fetch(CONFIG.SUPABASE_URL + "/storage/v1/object/" + CONFIG.BUCKET + "/" + path, {
+                await fetch(CONFIG.SUPABASE_URL + "/storage/v1/object/" + bucket + "/" + path, {
                     method: "DELETE",
                     headers: authHeaders()
                 });
@@ -1149,38 +1226,51 @@
         let loading = false;
         let total = null;
         let includeDeleted = false;
-        let source = null;              // null = alle
+        let filter = null;              // null = alle
 
         // The photographer's set is thousands of images and lands on top of
         // everything, so without this the guests' own photos are pushed
-        // hundreds of pages down and effectively disappear.
+        // hundreds of pages down and effectively disappear. The ten videos
+        // would vanish the same way, only faster.
         function buildFilters() {
             const choices = [
-                { value: null, label: "Alle" },
-                { value: "photographer", label: "Fotografen" },
-                { value: "guest", label: "Gæsterne" }
+                { id: "all", value: null, label: "Alle" },
+                // Only shown once there is something behind them, so the tabs
+                // never promise a page that comes back empty.
+                { id: "video", value: { kind: "video" }, label: "Video", whenEmpty: "hide" },
+                { id: "photographer", value: { source: "photographer" }, label: "Fotografen", whenEmpty: "hide" },
+                { id: "guest", value: { source: "guest" }, label: "Gæsterne" }
             ];
             const buttons = [];
+            let active = "all";
 
             choices.forEach(function (choice) {
                 const button = el("button", "gallery-filter", choice.label);
                 button.type = "button";
-                if (choice.value === source) button.classList.add("is-active");
+                if (choice.id === active) button.classList.add("is-active");
+                if (choice.whenEmpty === "hide") button.hidden = true;
+
                 button.addEventListener("click", function () {
-                    if (source === choice.value) return;
-                    source = choice.value;
+                    if (active === choice.id) return;
+                    active = choice.id;
+                    filter = choice.value;
                     buttons.forEach(function (b) { b.classList.remove("is-active"); });
                     button.classList.add("is-active");
                     reload();
                 });
+
                 buttons.push(button);
                 filters.appendChild(button);
-            });
 
-            countSource("photographer").then(function (n) {
-                // Nothing imported yet — leave the filter hidden rather than
-                // offering a tab that comes back empty.
-                if (n > 0) filters.hidden = false;
+                if (choice.whenEmpty !== "hide") return;
+                countMatching(choice.value).then(function (n) {
+                    if (n === 0) return;
+                    button.hidden = false;
+                    // The whole bar stays away until at least one of the
+                    // conditional tabs has something to show; before the
+                    // imports, "Alle" and "Gæsterne" are the same list.
+                    filters.hidden = false;
+                });
             });
         }
 
@@ -1192,27 +1282,48 @@
 
         function renderCount() {
             if (total == null) return;
-            count.textContent = total === 1 ? "1 billede fra dagen" : total + " billeder fra dagen";
+            if (filter && filter.kind === "video") {
+                count.textContent = total === 1 ? "1 video fra dagen" : total + " videoer fra dagen";
+            } else {
+                count.textContent = total === 1 ? "1 billede fra dagen" : total + " billeder fra dagen";
+            }
         }
 
         function addTile(photo, atStart) {
             if (atStart) photos.unshift(photo);
             else photos.push(photo);
 
+            const isVideo = photo.kind === "video";
+
             const button = el("button", "photo-tile");
             button.type = "button";
             if (photo.deleted_at) button.classList.add("is-deleted");
+            if (isVideo) button.classList.add("is-video");
+
+            // A video tile is its poster frame — the same 480 px JPEG the
+            // photos use — so the grid stays one uniform thing and no MP4 is
+            // touched until someone actually opens it.
             const img = el("img");
-            img.src = publicUrl(photo.thumb_path);
+            img.src = publicUrl(photo.thumb_path, photo.kind);
             img.loading = "lazy";
             img.decoding = "async";
-            img.alt = photo.guest_name ? "Billede delt af " + photo.guest_name : "Billede fra brylluppet";
+            img.alt = isVideo
+                ? (photo.title || "Video fra brylluppet")
+                : (photo.guest_name ? "Billede delt af " + photo.guest_name : "Billede fra brylluppet");
             if (photo.width && photo.height) {
                 img.width = photo.width;
                 img.height = photo.height;
             }
             img.addEventListener("load", function () { button.classList.add("is-loaded"); });
             button.appendChild(img);
+
+            if (isVideo) {
+                button.appendChild(el("span", "tile-play"));
+                if (photo.duration_s) {
+                    button.appendChild(el("span", "tile-duration", runtime(photo.duration_s)));
+                }
+                if (photo.title) button.appendChild(el("span", "tile-title", photo.title));
+            }
             button.addEventListener("click", function () {
                 lightbox.open(photos.indexOf(photo));
             });
@@ -1248,7 +1359,7 @@
 
             try {
                 const page = await fetchPage(lowestSeq, total == null, includeDeleted,
-                    opts.folder, source);
+                    opts.folder, filter);
                 if (page.total != null) {
                     total = page.total;
                     renderCount();
@@ -1261,9 +1372,15 @@
 
                 if (page.rows.length < CONFIG.PAGE_SIZE) {
                     exhausted = true;
+                    const kind = filter && filter.kind;
+                    const from = filter && filter.source;
                     if (photos.length) {
-                        sentinel.textContent = "Det var alle billeder ❤️";
-                    } else if (source === "photographer") {
+                        sentinel.textContent = kind === "video"
+                            ? "Det var alle videoer ❤️"
+                            : "Det var alle billeder ❤️";
+                    } else if (kind === "video") {
+                        sentinel.textContent = "Videoerne er der ikke endnu.";
+                    } else if (from === "photographer") {
                         sentinel.textContent = "Fotografens billeder er der ikke endnu.";
                     } else {
                         sentinel.textContent = "Der er ingen billeder endnu — vær den første!";
@@ -1300,8 +1417,8 @@
         // Let a guest see their own photo land at the top straight away.
         window.WedPhotos._onUploaded = function (photo) {
             // A guest's new photo must not appear while the photographer's
-            // photos are the ones being shown.
-            if (source === "photographer") return;
+            // photos — or the videos — are the ones being shown.
+            if (filter && (filter.source === "photographer" || filter.kind)) return;
             addTile(photo, true);
             if (total != null) {
                 total++;
@@ -1329,9 +1446,31 @@
         const dialog = el("dialog", "lightbox");
         const figure = el("figure", "lightbox-figure");
         const img = el("img", "lightbox-img");
+
+        // preload="none" is deliberate: opening a video must not start pulling
+        // an MP4 down before anyone has pressed play. Two hours of speeches
+        // served to a hundred guests is the one thing on this site that can
+        // run up a real bandwidth bill.
+        const video = el("video", "lightbox-video");
+        video.controls = true;
+        video.playsInline = true;
+        video.preload = "none";
+        video.hidden = true;
+
         const caption = el("figcaption", "lightbox-caption");
         figure.appendChild(img);
+        figure.appendChild(video);
         figure.appendChild(caption);
+
+        // Stop a video dead and drop its connection. Without this a video you
+        // swiped past keeps streaming in the background — invisible, audible
+        // only sometimes, and billed either way.
+        function releaseVideo() {
+            if (!video.getAttribute("src")) return;
+            video.pause();
+            video.removeAttribute("src");
+            video.load();
+        }
 
         const close = el("button", "lightbox-close", "×");
         close.type = "button";
@@ -1387,17 +1526,48 @@
             index = i;
             const photo = photos[i];
 
-            img.src = publicUrl(photo.storage_path);
+            const isVideo = photo.kind === "video";
+
+            // Always let go of the previous video, whether the next item is a
+            // photo or another video.
+            releaseVideo();
+
+            img.hidden = isVideo;
+            video.hidden = !isVideo;
+
+            if (isVideo) {
+                img.removeAttribute("src");
+
+                // Size the player to the video's own shape BEFORE any of it is
+                // downloaded. preload="none" means the browser has no metadata
+                // to go on, so it would give the element its default 2:1-ish
+                // box — and a 16:9 speech on an upright phone would sit in
+                // ~400 px of black bars with the caption pushed off-screen.
+                // The dimensions are in the row precisely for this.
+                video.style.aspectRatio = (photo.width && photo.height)
+                    ? photo.width + " / " + photo.height
+                    : "16 / 9";
+
+                video.poster = publicUrl(photo.thumb_path, photo.kind);
+                video.src = publicUrl(photo.storage_path, photo.kind);
+            } else {
+                img.src = publicUrl(photo.storage_path, photo.kind);
+            }
 
             // The photographer's images carry no guest_name — saying nothing at
             // all would read as a photo nobody will admit to.
-            const byline = photo.source === "photographer"
-                ? "Fotografens billede"
-                : (photo.guest_name ? "Delt af " + photo.guest_name : "");
+            const byline = isVideo
+                ? (photo.title || "Video fra brylluppet")
+                : (photo.source === "photographer"
+                    ? "Fotografens billede"
+                    : (photo.guest_name ? "Delt af " + photo.guest_name : ""));
 
             img.alt = byline || "Billede fra brylluppet";
 
             let text = byline;
+            if (isVideo && photo.duration_s) {
+                text = (text ? text + " · " : "") + runtime(photo.duration_s);
+            }
             if (photo.original_path) text = (text ? text + " · " : "") + "Download giver originalen";
             if (photo.deleted_at) text = (text ? text + " · " : "") + "Slettet af gæsten";
             caption.textContent = text;
@@ -1410,11 +1580,15 @@
             prev.hidden = i === 0;
             next.hidden = i === photos.length - 1;
 
-            // Warm the neighbours so swiping feels instant.
+            // Warm the neighbours so swiping feels instant. Videos are skipped
+            // on purpose: this would fetch an entire MP4 in order to fail at
+            // decoding it as an image.
             [i - 1, i + 1].forEach(function (n) {
                 if (n < 0 || n >= photos.length) return;
+                const neighbour = photos[n];
+                if (neighbour.kind === "video") return;
                 const pre = new Image();
-                pre.src = publicUrl(photos[n].storage_path);
+                pre.src = publicUrl(neighbour.storage_path, neighbour.kind);
             });
         }
 
@@ -1451,7 +1625,7 @@
                 confirmBtn.disabled = false;
 
                 if (!photos.length) {
-                    dialog.close();
+                    dismiss();
                 } else {
                     show(Math.min(index, photos.length - 1));
                 }
@@ -1463,29 +1637,49 @@
             }
         });
 
-        close.addEventListener("click", function () { dialog.close(); });
+        // Every route out of the lightbox releases the video itself rather
+        // than trusting the close event alone. releaseVideo() is idempotent,
+        // and a video that keeps streaming after you have left is the one
+        // failure here that costs real money.
+        function dismiss() {
+            releaseVideo();
+            dialog.close();
+        }
+
+        close.addEventListener("click", dismiss);
         prev.addEventListener("click", function () { show(index - 1); });
         next.addEventListener("click", function () { show(index + 1); });
 
         dialog.addEventListener("close", function () {
             document.body.classList.remove("lightbox-open");
             img.removeAttribute("src");
+            releaseVideo();
             resetDeleteUI();
         });
 
         // Click the backdrop (i.e. the dialog itself, not the picture) to close.
         dialog.addEventListener("click", function (e) {
-            if (e.target === dialog) dialog.close();
+            if (e.target === dialog) dismiss();
         });
 
+        // Esc goes through cancel, which fires before close.
+        dialog.addEventListener("cancel", releaseVideo);
+
         dialog.addEventListener("keydown", function (e) {
+            // With a video focused the arrows belong to the player — seeking
+            // and jumping to the next speech at the same time is nobody's idea
+            // of a shortcut.
+            if (e.target === video) return;
             if (e.key === "ArrowLeft") show(index - 1);
             else if (e.key === "ArrowRight") show(index + 1);
         });
 
         let touchX = null;
         dialog.addEventListener("touchstart", function (e) {
-            touchX = e.changedTouches[0].clientX;
+            // Dragging the scrubber is a horizontal swipe. Left alone it would
+            // also count as "next photo", so a touch that starts on the player
+            // never navigates.
+            touchX = e.target === video ? null : e.changedTouches[0].clientX;
         }, { passive: true });
         dialog.addEventListener("touchend", function (e) {
             if (touchX == null) return;

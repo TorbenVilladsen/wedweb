@@ -355,6 +355,74 @@ med at bede dig køre den igen. Det er sikkert at gøre.
 
 ---
 
+## 4e. Talerne og underholdningen (video)
+
+**Kør først dette, når I skal lægge videoerne op** — altså efter brylluppet.
+Galleriet fungerer uændret uden.
+
+De ti videoer fra dagen er noget andet end gæsternes billeder: det er en
+håndfuld filer, I selv lægger op fra jeres computer, og som I kan omkode
+ordentligt først. Det er derfor de kan lade sig gøre, mens video fra gæsternes
+telefoner stadig ikke kan (afsnit 7bb).
+
+### En spand for sig
+
+Videoerne må **ikke** i `gallery`. Den spand er spærret til 10 MB og
+`image/jpeg`, og det er den eneste grænse for gæsternes upload, som en browser
+ikke kan snakke sig uden om: policyen fra afsnit 3 kræver ganske vist, at
+filnavnet ender på `.jpg`, men den siger intet om størrelsen. Sætter I grænsen
+op, så en video kan være der, kan enhver, der kigger i sidens kildekode, også
+lægge en 2 GB stor fil op, der hedder `.jpg`.
+
+**Storage** → **New bucket**:
+
+- Name: **`video`** — præcis sådan, med småt. Navnet står i koden.
+- **Public bucket**: til.
+- **Restrict file size**: **2 GB**.
+- **Allowed MIME types**: `video/mp4` og `image/jpeg` (still-billederne til
+  gitteret ligger samme sted).
+
+**Opret ingen policies på den spand.** Uden policies kan `anon` — altså alle,
+der besøger siden — hverken lægge op, ændre eller slette. Kun importen, der
+kører med `service_role`-nøglen fra jeres egen computer, kan skrive der.
+Nødbremsen er den samme som for billederne: sæt spanden til ikke-public, så er
+videoerne væk fra siden med det samme.
+
+### Kolonnerne
+
+**SQL Editor** → **New query** → **Run**.
+
+```sql
+alter table public.photos add column if not exists kind        text not null default 'photo';
+alter table public.photos add column if not exists duration_s  int;
+alter table public.photos add column if not exists title       text;
+
+alter table public.photos drop constraint if exists photos_kind_ok;
+alter table public.photos add  constraint photos_kind_ok check (kind in ('photo','video'));
+
+-- Jeres egne optagelser er hverken fotografens eller en gæsts.
+alter table public.photos drop constraint if exists photos_source_ok;
+alter table public.photos add  constraint photos_source_ok
+  check (source in ('guest','photographer','couple'));
+
+create index if not exists photos_kind_seq_idx on public.photos (kind, seq desc);
+
+grant select (id, seq, storage_path, thumb_path, guest_name, width, height,
+              taken_at, created_at, approved, deleted_at, source, original_path,
+              kind, duration_s, title)
+  on public.photos to anon;
+```
+
+Læg mærke til, at `kind`, `duration_s` og `title` **ikke** kommer med i
+`grant insert (...)` — samme grund som `source` i afsnit 4c. Alt, hvad en
+browser lægger op, er automatisk et `'photo'`, og ingen kan udgive deres eget
+billede for at være en tale.
+
+Siden klarer sig, hvis I glemmer blokken: så viser galleriet bare billeder,
+præcis som før. Den går ikke i stykker.
+
+---
+
 ## 5. Sæt de to værdier ind i koden
 
 1. Tandhjulet **Project Settings** → **API** (kan hedde **API Keys**).
@@ -478,13 +546,17 @@ https://anne-og-torben.dk/Galleri/?uid=JERES-UID&forhaandsvisning=0
 
 ---
 
-## 7bb. Video — siden tager kun billeder
+## 7bb. Gæsterne kan kun sende billeder
 
-Der kan kun sendes **billeder** på siden. En video kan ikke skaleres ned i
+Gæsterne kan kun sende **billeder** fra siden. En video kan ikke skaleres ned i
 browseren, sådan som et billede kan, så den ville blive sendt i fuld størrelse
 (en video på 30 sekunder fra en iPhone fylder 65–175 MB) — og en iPhone-video
 kan oven i købet være uafspillelig på en Android-telefon. Derfor er video holdt
-udenfor med vilje.
+ude af upload'en med vilje.
+
+> Det gælder **gæsternes upload**. Jeres egne optagelser — talerne og
+> underholdningen — kan godt komme i galleriet; I lægger dem bare op fra
+> computeren i stedet, hvor de kan omkodes ordentligt først. Se afsnit 7bd.
 
 Under upload-knappen står der i stedet:
 
@@ -502,6 +574,79 @@ VIDEO_EMAIL: "torben-v@hotmail.com",
 
 > **Husk:** et gratis WeTransfer-link holder kun et par dage. Hent videoerne ned
 > med det samme, I får mailen — ellers er de væk.
+
+---
+
+## 7bd. Sådan lægger I talerne og underholdningen op
+
+Kør afsnit 4e først — både spanden og SQL'en.
+
+Videoerne får deres egen fane **Video** i galleriet ved siden af *Alle*,
+*Fotografen* og *Gæsterne*. Fanen dukker først op, når der ligger mindst én
+video; ti videoer blandt fotografens tusinder ville ellers være væk fra
+forsiden af galleriet inden for et minuts scrollen.
+
+### Navngiv filerne først
+
+Filnavnet bliver videoens titel på siden. Nummeret foran ryger væk — det er kun
+til at holde rækkefølgen i mappen:
+
+```
+01 Brudens tale.mov        ->  "Brudens tale"
+02 Gommens tale.mov        ->  "Gommens tale"
+03 Sang fra bordet 4.mp4   ->  "Sang fra bordet 4"
+```
+
+### Kør importen
+
+```bash
+brew install ffmpeg
+```
+
+```bash
+export SUPABASE_URL="https://bpyjzpxnqzjiwzzshscs.supabase.co"
+export SUPABASE_SERVICE_KEY="ey…"      # service_role, ikke anon
+```
+
+Tag én video først, og se den på en telefon, før I kører resten:
+
+```bash
+python3 tools/import_video.py ~/Film/bryllup --limit 1
+```
+
+```bash
+python3 tools/import_video.py ~/Film/bryllup
+```
+
+Scriptet omkoder hver video til H.264/AAC i en MP4 — den ene kombination, som
+alle telefoner og computere kan afspille — skalerer den ned til 1080p, tager et
+still-billede til gitteret og lægger begge dele op. Den kan afbrydes og startes
+igen ligesom billedimporten.
+
+### Det, der koster penge, er trafikken — ikke pladsen
+
+To timers video fylder omkring 3,5 GB. Det er ingenting på Pro. Men **hver gang
+en gæst ser en tale, sendes filen igen**, og taler er lige præcis det, familien
+ser fra ende til anden. Ser 50 gæster en time hver, er det ~90 GB oven i
+billederne.
+
+Pro har en mængde trafik med i prisen, og med **spend cap slået til bliver
+galleriet bremset i stedet for at koste ekstra**. Derfor:
+
+- Videoen hentes **ikke**, før nogen trykker play — heller ikke når man åbner
+  den. Scroller man forbi, bruges der ingenting.
+- **Download** giver den samme MP4, folk ser (~300–400 MB), ikke råfilen fra
+  kameraet på flere GB.
+- **Kig på Reports → Usage et par dage efter, I har sendt linket ud.** Ser
+  trafikken ud til at nå grænsen, er valget enten at hæve spend cap midlertidigt
+  (vi taler småpenge i overforbrug) eller at sætte `video`-spanden til
+  ikke-public, til måneden skifter. Det er bedre at vide det end at opdage det,
+  fordi galleriet er gået i stå.
+
+### Fjern én video
+
+Log ind på **anne-og-torben.dk/admin**, åbn videoen og tryk **Slet permanent** —
+præcis som med et billede. Både filen og still-billedet ryger.
 
 ---
 

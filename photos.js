@@ -54,10 +54,11 @@
         // full size and could still be unplayable for half the guests.
         VIDEO_EMAIL: "torben-v@hotmail.com",
 
-        // Nothing opens until the front-page countdown hits zero. This is the
-        // same date string as script.js:4 on purpose — if one moves, move both,
-        // or the front page will say "Det er vores bryllup!" while this still
-        // says "not yet". Parsed as local time, exactly like the countdown.
+        // When the gallery opened. This used to be kept in step with the
+        // front-page countdown, but that countdown has moved on to the copper
+        // anniversary in 2039 — this one must stay on the wedding day. Push it
+        // forward to match script.js again and the gallery locks itself shut.
+        // Parsed as local time.
         OPENS_AT: "August 15, 2026 13:00:00",
 
         MAX_EDGE: 2560,      // longest edge of the stored photo (prints fine at 8x10")
@@ -74,7 +75,6 @@
         RETRY_DELAYS: [1000, 3000, 8000]
     };
 
-    const NAME_KEY = "wed_guest_name";
     const ORPHAN_KEY = "wed_orphans";
     const MINE_KEY = "wed_my_photos";      // { photoId: deleteToken }
     const ADMIN_KEY = "wed_admin_session";
@@ -544,9 +544,10 @@
      * @param {string} [folder] restrict to one upload folder. Keeps the real
      *        gallery and the /test/ gallery from seeing each other's photos.
      *        Omit for admin, which needs to see everything to clean up.
-     * @param {{source?: string, kind?: string}} [filter] which tab is showing.
-     *        `source` picks guest vs photographer, `kind` picks the videos.
-     *        Omit for "Alle".
+     * @param {{source?: string, kind?: string, guestName?: string}} [filter]
+     *        what the gallery is showing. `source` picks guest vs
+     *        photographer, `kind` picks the videos, `guestName` picks one
+     *        person. Omit for "Alle".
      */
     async function fetchPage(beforeSeq, wantCount, includeDeleted, folder, filter) {
         function buildUrl() {
@@ -564,6 +565,14 @@
             }
             if (filter && filter.kind && videoColumns) {
                 url += "&kind=eq." + encodeURIComponent(filter.kind);
+            }
+            // guest_name is a base column, so this one needs no migration and
+            // no tier guard. Plain percent-encoding is also the right escaping:
+            // PostgREST keeps double quotes as part of the value for eq., so
+            // quoting "Cecilie" looks for a name spelled with the quotes. A
+            // comma is not a delimiter here either — eq. takes one value.
+            if (filter && filter.guestName) {
+                url += "&guest_name=eq." + encodeURIComponent(filter.guestName);
             }
             return url;
         }
@@ -623,6 +632,64 @@
         } catch (err) {
             return 0;
         }
+    }
+
+    /**
+     * Everyone who has put their name to a photo, with how many they sent.
+     *
+     * There is no DISTINCT in PostgREST and no view to lean on, so we ask for
+     * the one column and fold it here. That is deliberate: guest_name is a
+     * base column, granted to anon since the very first migration, so the
+     * people filter works on the live project today — no SQL to run first.
+     *
+     * The photographer's thousands of rows carry no name and are excluded by
+     * the server, so this stays roughly "one short string per guest photo"
+     * however big the gallery gets.
+     *
+     * @param {string} [folder] same folder filter the gallery itself uses, so
+     *        /test/ uploaders never show up in the real gallery's list.
+     * @returns {Promise<Array<{name: string, count: number}>>} empty on error —
+     *          a missing dropdown is better than a broken gallery.
+     */
+    async function fetchGuestNames(folder) {
+        const tally = new Map();
+        const step = 1000;
+        let offset = 0;
+
+        try {
+            // Paged rather than one huge request: a wedding this size will
+            // never need the second lap, but a truncated list would silently
+            // lose whoever sorts last.
+            for (let page = 0; page < 10; page++) {
+                let url = CONFIG.SUPABASE_URL + "/rest/v1/photos" +
+                    "?select=guest_name&deleted_at=is.null&guest_name=not.is.null" +
+                    "&limit=" + step + "&offset=" + offset;
+                if (folder) url += "&storage_path=like." + encodeURIComponent(folder + "/*");
+
+                const res = await fetch(url, { headers: authHeaders() });
+                if (!res.ok) return [];
+
+                const rows = await res.json();
+                rows.forEach(function (row) {
+                    const name = String(row.guest_name || "").trim();
+                    if (!name) return;
+                    tally.set(name, (tally.get(name) || 0) + 1);
+                });
+
+                if (rows.length < step) break;
+                offset += step;
+            }
+        } catch (err) {
+            return [];
+        }
+
+        // Most photos first: the people who sent twenty are the ones anyone
+        // is likely to go looking for. Ties fall back to Danish alphabetical.
+        return Array.from(tally, function (entry) {
+            return { name: entry[0], count: entry[1] };
+        }).sort(function (a, b) {
+            return b.count - a.count || a.name.localeCompare(b.name, "da");
+        });
     }
 
     // A guest hiding their own photo. The token never leaves this browser
@@ -787,7 +854,7 @@
         link.target = "_blank";
         link.rel = "noopener noreferrer";
         lead.appendChild(link);
-        lead.appendChild(document.createTextNode(" — video kan ikke sendes her på siden."));
+        lead.appendChild(document.createTextNode(" - video kan ikke uploades her på siden."));
         wrap.appendChild(lead);
 
         const guide = el("details", "wed-video-guide");
@@ -819,17 +886,18 @@
     function buildUploader(mount, state) {
         const wrap = el("div", "wed-upload");
 
-        const nameRow = el("div", "wed-name-row");
-        const nameLabel = el("label", null, "Dit navn (så vi ved, hvem vi skal takke)");
-        nameLabel.setAttribute("for", "wed-name");
-        const nameInput = el("input", "wed-name-input");
-        nameInput.id = "wed-name";
-        nameInput.type = "text";
-        nameInput.maxLength = 60;
-        nameInput.autocomplete = "name";
-        nameInput.placeholder = "Valgfrit";
-        nameRow.appendChild(nameLabel);
-        nameRow.appendChild(nameInput);
+        // The name is not a question any more: it comes from the invitation
+        // the guest arrived on. Nothing to type, nothing to get wrong, and the
+        // people filter in the gallery stays clean — one spelling per guest
+        // instead of "Helle", "helle" and "Helle og H" as three strangers.
+        const credit = el("p", "wed-credit");
+        if (state.name) {
+            credit.appendChild(el("span", "wed-credit-label", "Billederne deles i jeres navn"));
+            credit.appendChild(el("span", "wed-credit-name", state.name));
+        } else {
+            // /test/ has no invitation and so no name to show.
+            credit.hidden = true;
+        }
 
         const fileInput = el("input", "wed-file-input");
         fileInput.type = "file";
@@ -842,14 +910,14 @@
         const cta = el("button", "upload-cta", "Vælg billeder");
         cta.type = "button";
 
-        const hint = el("p", "wed-hint", "Du kan vælge flere billeder på én gang.");
+        const hint = el("p", "wed-hint", "Man kan vælge flere billeder på én gang.");
         const banner = el("div", "wed-banner");
         banner.hidden = true;
         const summary = el("div", "wed-summary");
         summary.hidden = true;
         const list = el("ul", "wed-list");
 
-        wrap.appendChild(nameRow);
+        wrap.appendChild(credit);
         wrap.appendChild(cta);
         wrap.appendChild(fileInput);
         wrap.appendChild(hint);
@@ -867,23 +935,12 @@
             return;
         }
 
-        // Prefer the name we already know from the invitation; otherwise reuse
-        // whatever the guest typed last time on this phone.
-        let storedName = "";
-        try { storedName = localStorage.getItem(NAME_KEY) || ""; } catch (err) { /* private mode */ }
-        nameInput.value = state.name || storedName;
-
-        nameInput.addEventListener("change", function () {
-            try { localStorage.setItem(NAME_KEY, nameInput.value.trim()); } catch (err) { /* ignore */ }
-        });
-
         cta.addEventListener("click", function () { fileInput.click(); });
 
         const queue = createQueue({
             list: list,
             summary: summary,
             banner: banner,
-            nameInput: nameInput,
             wrap: wrap,
             cta: cta,
             state: state
@@ -1116,7 +1173,9 @@
                 setProgress(item, 1);
                 setStatus(item, "Gemmer…");
 
-                const guestName = ui.nameInput.value.trim();
+                // Straight from the invitation — the guest never gets to edit
+                // it, so every photo from one household files under one name.
+                const guestName = String(ui.state.name || "").trim();
                 const row = {
                     id: item.photoId,
                     storage_path: item.storedPath.full,
@@ -1206,10 +1265,27 @@
         const wrap = el("div", "wed-gallery");
         const filters = el("div", "gallery-filters");
         filters.hidden = true;          // shown only once we know it is useful
+
+        // "Hvem har taget billedet" — a native <select> on purpose: on a phone
+        // it opens the platform's own wheel, which handles forty names far
+        // better than anything built out of divs.
+        const peopleWrap = el("div", "gallery-people");
+        peopleWrap.hidden = true;
+        const peopleId = "wed-people-" + Math.random().toString(36).slice(2, 8);
+        const peopleLabel = el("label", "gallery-people-label", "Billeder fra");
+        peopleLabel.setAttribute("for", peopleId);
+        const people = el("select", "gallery-people-select");
+        people.id = peopleId;
+        people.appendChild(el("option", null, "Alle, der har delt"));
+        people.firstChild.value = "";
+        peopleWrap.appendChild(peopleLabel);
+        peopleWrap.appendChild(people);
+
         const count = el("p", "gallery-count");
         const grid = el("div", "photo-grid");
         const sentinel = el("div", "gallery-sentinel");
         wrap.appendChild(filters);
+        wrap.appendChild(peopleWrap);
         wrap.appendChild(count);
         wrap.appendChild(grid);
         wrap.appendChild(sentinel);
@@ -1233,44 +1309,79 @@
         // hundreds of pages down and effectively disappear. The ten videos
         // would vanish the same way, only faster.
         function buildFilters() {
+            // There is deliberately no "Alle" and no "Gæsterne" pill. Until the
+            // photographer's set and the videos are imported those two say the
+            // same thing as each other and as the unfiltered gallery, and the
+            // people dropdown now covers "whose photos". Both tabs below only
+            // appear once there is something behind them, so most of the time
+            // this bar is empty and stays out of the way entirely.
             const choices = [
-                { id: "all", value: null, label: "Alle" },
-                // Only shown once there is something behind them, so the tabs
-                // never promise a page that comes back empty.
-                { id: "video", value: { kind: "video" }, label: "Video", whenEmpty: "hide" },
-                { id: "photographer", value: { source: "photographer" }, label: "Fotografen", whenEmpty: "hide" },
-                { id: "guest", value: { source: "guest" }, label: "Gæsterne" }
+                { id: "video", value: { kind: "video" }, label: "Video" },
+                { id: "photographer", value: { source: "photographer" }, label: "Fotografen" }
             ];
             const buttons = [];
-            let active = "all";
+            let active = null;
+
+            function activate(id) {
+                active = id;
+                buttons.forEach(function (b) {
+                    b.classList.toggle("is-active", b.dataset.filterId === id);
+                });
+            }
 
             choices.forEach(function (choice) {
                 const button = el("button", "gallery-filter", choice.label);
                 button.type = "button";
-                if (choice.id === active) button.classList.add("is-active");
-                if (choice.whenEmpty === "hide") button.hidden = true;
+                button.dataset.filterId = choice.id;
+                button.hidden = true;
 
                 button.addEventListener("click", function () {
-                    if (active === choice.id) return;
-                    active = choice.id;
-                    filter = choice.value;
-                    buttons.forEach(function (b) { b.classList.remove("is-active"); });
-                    button.classList.add("is-active");
+                    // Pressing the active tab again turns it off. With no
+                    // "Alle" pill left this is the way back to the whole
+                    // gallery, so a tab must not be a one-way door.
+                    const turningOff = active === choice.id;
+                    activate(turningOff ? null : choice.id);
+                    filter = turningOff ? null : choice.value;
+                    // A tab and a person are two answers to the same question,
+                    // so picking a tab drops the person rather than quietly
+                    // intersecting the two into an empty page.
+                    people.value = "";
                     reload();
                 });
 
                 buttons.push(button);
                 filters.appendChild(button);
 
-                if (choice.whenEmpty !== "hide") return;
                 countMatching(choice.value).then(function (n) {
                     if (n === 0) return;
                     button.hidden = false;
-                    // The whole bar stays away until at least one of the
-                    // conditional tabs has something to show; before the
-                    // imports, "Alle" and "Gæsterne" are the same list.
+                    // The bar reveals itself only when a pill inside it does,
+                    // so an empty row never takes up space above the photos.
                     filters.hidden = false;
                 });
+            });
+
+            people.addEventListener("change", function () {
+                const name = people.value;
+                // A person and a tab are mutually exclusive, so choosing one
+                // clears the other.
+                activate(null);
+                filter = name ? { guestName: name } : null;
+                reload();
+            });
+
+            // The list is only worth showing once there is a choice to make:
+            // with a single uploader it just repeats the gallery itself.
+            fetchGuestNames(opts.folder).then(function (names) {
+                if (names.length < 2) return;
+
+                names.forEach(function (entry) {
+                    const option = el("option", null, entry.name + " (" + entry.count + ")");
+                    option.value = entry.name;
+                    people.appendChild(option);
+                });
+
+                peopleWrap.hidden = false;
             });
         }
 
@@ -1282,10 +1393,13 @@
 
         function renderCount() {
             if (total == null) return;
-            if (filter && filter.kind === "video") {
+            const noun = total === 1 ? "billede" : "billeder";
+            if (filter && filter.guestName) {
+                count.textContent = total + " " + noun + " fra " + filter.guestName;
+            } else if (filter && filter.kind === "video") {
                 count.textContent = total === 1 ? "1 video fra dagen" : total + " videoer fra dagen";
             } else {
-                count.textContent = total === 1 ? "1 billede fra dagen" : total + " billeder fra dagen";
+                count.textContent = total + " " + noun + " fra dagen";
             }
         }
 
@@ -1374,10 +1488,14 @@
                     exhausted = true;
                     const kind = filter && filter.kind;
                     const from = filter && filter.source;
+                    const who = filter && filter.guestName;
                     if (photos.length) {
                         sentinel.textContent = kind === "video"
                             ? "Det var alle videoer ❤️"
-                            : "Det var alle billeder ❤️";
+                            : (who ? "Det var alle billeder fra " + who + " ❤️"
+                                   : "Det var alle billeder ❤️");
+                    } else if (who) {
+                        sentinel.textContent = who + " har ikke delt nogen billeder endnu.";
                     } else if (kind === "video") {
                         sentinel.textContent = "Videoerne er der ikke endnu.";
                     } else if (from === "photographer") {
@@ -1417,8 +1535,10 @@
         // Let a guest see their own photo land at the top straight away.
         window.WedPhotos._onUploaded = function (photo) {
             // A guest's new photo must not appear while the photographer's
-            // photos — or the videos — are the ones being shown.
+            // photos — or the videos — are the ones being shown, nor while
+            // someone else's name is selected.
             if (filter && (filter.source === "photographer" || filter.kind)) return;
+            if (filter && filter.guestName && photo.guest_name !== filter.guestName) return;
             addTile(photo, true);
             if (total != null) {
                 total++;

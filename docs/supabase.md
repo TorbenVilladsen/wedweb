@@ -506,19 +506,20 @@ Table Editor.
 
 ## 7b. Siden åbner først på dagen
 
-`/Galleri/` er lukket indtil **15. august 2026 kl. 13.00** — altså præcis når
-nedtællingen på forsiden rammer nul. Indtil da får gæsterne en pæn besked i
-stedet for upload-knappen, og galleriet er skjult. Selve nedtællingen står kun
-på forsiden; den gentages ikke her. Klokkeslættet står ét sted i koden:
+`/Galleri/` var lukket indtil **15. august 2026 kl. 13.00**. Før da fik gæsterne
+en pæn besked i stedet for upload-knappen, og galleriet var skjult. Tidspunktet
+står ét sted i koden:
 
 ```js
 // photos.js
 OPENS_AT: "August 15, 2026 13:00:00",
 ```
 
-Skal tidspunktet flyttes, skal det **også** flyttes i `script.js` (linje 4),
-ellers siger forsiden "Det er vores bryllup!", mens billedsiden stadig siger
-"vi åbner senere".
+> **Lad den stå.** Den fulgtes tidligere ad med nedtællingen på forsiden, men
+> forsiden tæller nu ned til kobberbrylluppet i 2039 (`script.js`). De to datoer
+> er med vilje ikke ens længere. Flytter I `OPENS_AT` frem for at få de to til
+> at passe sammen igen, lukker galleriet sig selv — og alle billederne
+> forsvinder for gæsterne, indtil datoen bliver sat tilbage.
 
 `/admin/` er ikke omfattet — der kan I komme ind når som helst.
 

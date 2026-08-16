@@ -1,7 +1,16 @@
 document.addEventListener("DOMContentLoaded", () => {
   // --- Countdown Logic ---
   const countdown = document.getElementById("countdown");
-  const targetDate = new Date("August 15, 2026 13:00:00").getTime();
+
+  // The wedding is behind us, so the banner now counts towards the copper
+  // anniversary instead of standing at "Det er vores bryllup!" forever.
+  //
+  // This is NOT the same date as OPENS_AT in photos.js any more. That one
+  // guards when the gallery opened and must stay on the wedding day — move it
+  // forward to match this and the gallery locks itself shut again.
+  // Kobberbryllup is 12½ years, i.e. halfway to the silver one.
+  const targetDate = new Date("February 15, 2039 13:00:00").getTime();
+  const COUNTDOWN_LABEL = "Tid til kobberbrylluppet";
   let timer; // Define timer variable scope
 
   function updateCountdown() {
@@ -9,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const distance = targetDate - now;
 
     if (distance <= 0) {
-      if (countdown) countdown.textContent = "Det er vores bryllup!";
+      if (countdown) countdown.textContent = COUNTDOWN_LABEL + "!";
       clearInterval(timer);
       return;
     }
@@ -22,9 +31,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (countdown) {
       const isMobile = window.innerWidth <= 1024;
       if (isMobile) {
-        countdown.textContent = `${days}d · ${hours}t · ${minutes}m · ${seconds}s`;
+        countdown.textContent = `${COUNTDOWN_LABEL} · ${days}d · ${hours}t · ${minutes}m · ${seconds}s`;
       } else {
-        countdown.textContent = `${days} dage  ·  ${hours} timer  ·  ${minutes} min  ·  ${seconds} sek`;
+        countdown.textContent = `${COUNTDOWN_LABEL}  ·  ${days} dage  ·  ${hours} timer  ·  ${minutes} min  ·  ${seconds} sek`;
       }
     }
   }

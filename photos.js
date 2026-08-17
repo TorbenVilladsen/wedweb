@@ -222,6 +222,17 @@
         return !!(session && session.access_token);
     }
 
+    // Whether the stored token is still worth sending. Supabase access tokens
+    // last about an hour, and an EXPIRED one is worse than none at all:
+    // PostgREST answers 401, and the gallery tells the visitor the photos
+    // could not be fetched. It only ever bit us — a guest never signs in — but
+    // logging into /admin/ once was enough to break /Galleri/ on that browser
+    // an hour later, until the site data was cleared.
+    function sessionFresh() {
+        return !!(session && session.access_token && session.expires_at &&
+            (session.expires_at * 1000) > Date.now() + 60000);
+    }
+
     function anonHeaders() {
         return {
             apikey: CONFIG.SUPABASE_ANON_KEY,
@@ -235,7 +246,7 @@
     function authHeaders() {
         return {
             apikey: CONFIG.SUPABASE_ANON_KEY,
-            Authorization: "Bearer " + (isAdmin() ? session.access_token : CONFIG.SUPABASE_ANON_KEY)
+            Authorization: "Bearer " + (sessionFresh() ? session.access_token : CONFIG.SUPABASE_ANON_KEY)
         };
     }
 
@@ -292,8 +303,7 @@
 
     async function ensureSession() {
         if (!isAdmin()) return false;
-        const stillFresh = session.expires_at && (session.expires_at * 1000) > Date.now() + 60000;
-        if (stillFresh) return true;
+        if (sessionFresh()) return true;
         return await refreshSession();
     }
 
@@ -580,16 +590,29 @@
         const headers = authHeaders();
         if (wantCount) headers.Prefer = "count=exact";
 
+        // A token can still be refused after passing sessionFresh(): revoked
+        // server-side, or this device's clock is off. Reading the gallery needs
+        // no privileges whatsoever, so recover as anon instead of telling the
+        // visitor the photos are unavailable.
+        async function send() {
+            const first = await fetch(buildUrl(), { headers: headers });
+            if (first.status !== 401 || !isAdmin()) return first;
+
+            if (await refreshSession()) Object.assign(headers, authHeaders());
+            else Object.assign(headers, anonHeaders());
+            return await fetch(buildUrl(), { headers: headers });
+        }
+
         let res;
         try {
-            res = await fetch(buildUrl(), { headers: headers });
+            res = await send();
             // PostgREST does not say WHICH column it did not recognise, so
             // give up the newest migration first and only fall back further if
             // that was not the problem. At most two extra round trips, once.
             while (res.status === 400 && (videoColumns || extraColumns)) {
                 if (videoColumns) videoColumns = false;
                 else extraColumns = false;
-                res = await fetch(buildUrl(), { headers: headers });
+                res = await send();
             }
         } catch (err) {
             throw netError();

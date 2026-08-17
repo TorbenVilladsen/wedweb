@@ -662,6 +662,19 @@ body.lightbox-open {
     display: none;
 }
 
+/* The iOS long-press tip. Quieter than the caption — it is a hint, not
+   information about the photo. */
+.lightbox-hint {
+    margin: -0.4rem 0 0;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-align: center;
+}
+
+.lightbox-hint[hidden] {
+    display: none;
+}
+
 .lightbox-caption {
     font-family: var(--font-heading);
     font-style: italic;

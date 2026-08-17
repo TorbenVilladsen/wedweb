@@ -169,6 +169,40 @@
         return publicUrl(path, photo.kind) + "?download=" + encodeURIComponent(name);
     }
 
+    // --- SAVING TO THE PHONE'S PHOTO LIBRARY -------------------------------
+    // A web page cannot write to iOS Billeder or the Android gallery. There is
+    // no API for it, on either platform, and a plain download lands in Filer /
+    // Downloads instead — where nobody goes looking for a wedding photo.
+    //
+    // The share sheet is the only way in. We hand the OS the actual file and
+    // it offers "Gem billede" / "Gem video", which writes to the photo library
+    // proper. One extra tap, but the picture ends up where people expect.
+    //
+    // Gated on touch: on a desktop the share sheet is a worse Download button,
+    // so those keep the plain link.
+    function canSaveToLibrary() {
+        return !!(navigator.share && navigator.canShare &&
+            (navigator.maxTouchPoints || 0) > 0);
+    }
+
+    // iOS has a shortcut nothing else does: long-press a photo and "Føj til
+    // Billeder" writes it straight to the camera roll — no share sheet, no
+    // waiting for a download. It works here already (nothing in the CSS blocks
+    // the callout, and the swipe handlers are passive), it is just invisible
+    // unless you happen to know. Worth one line of text.
+    //
+    // iPadOS reports itself as a Mac, hence the second half.
+    function isIOS() {
+        return /iP(hone|ad|od)/.test(navigator.userAgent) ||
+            (navigator.platform === "MacIntel" && (navigator.maxTouchPoints || 0) > 1);
+    }
+
+    // Sharing means holding the whole file in memory first. A 2 MB photo is
+    // nothing; a ten-minute speech is not, and buffering that on a phone over
+    // mobile data — with no progress bar, because the share sheet has not
+    // opened yet — fails badly. Above this we leave it as a normal download.
+    const MAX_SHARE_BYTES = 100 * 1024 * 1024;
+
     // mm:ss, so a tile can say how long the speech is before anyone commits to
     // it on mobile data.
     function runtime(seconds) {
@@ -1601,9 +1635,17 @@
         video.hidden = true;
 
         const caption = el("figcaption", "lightbox-caption");
+
+        // Only on iPhone/iPad, and only for photos: long-pressing a <video>
+        // offers no such thing, so the tip would be a lie there.
+        const hint = el("p", "lightbox-hint",
+            "Tip: hold fingeren på billedet for at gemme det i Billeder");
+        hint.hidden = true;
+
         figure.appendChild(img);
         figure.appendChild(video);
         figure.appendChild(caption);
+        figure.appendChild(hint);
 
         // Stop a video dead and drop its connection. Without this a video you
         // swiped past keeps streaming in the background — invisible, audible
@@ -1627,6 +1669,10 @@
 
         // Toolbar: download always, delete when it's yours or you're the admin.
         const bar = el("div", "lightbox-bar");
+
+        // Stays a real <a href> whatever happens: that is the fallback when
+        // the share sheet is unavailable, refused, or the file is too big, and
+        // it is what makes the control work with no JavaScript at all.
         const download = el("a", "lightbox-action", "Download");
         download.setAttribute("download", "");
         const del = el("button", "lightbox-action danger", "Slet");
@@ -1716,6 +1762,12 @@
             caption.textContent = text;
 
             download.href = downloadUrl(photo);
+            // On a phone this button saves to the photo library rather than
+            // downloading to Filer, so it should not say "Download".
+            download.textContent = canSaveToLibrary()
+                ? (isVideo ? "Gem video" : "Gem billede")
+                : "Download";
+            hint.hidden = isVideo || !isIOS();
             del.hidden = !canDelete(photo);
             del.textContent = adminMode ? "Slet permanent" : "Slet";
             resetDeleteUI();
@@ -1777,6 +1829,45 @@
                 note.textContent = err.status === 401 || err.status === 403
                     ? "Du har ikke lov til at slette dette billede."
                     : "Kunne ikke slette. Prøv igen.";
+            }
+        });
+
+        // Hand the file to the OS so it can be saved into the photo library.
+        // Falls back to the plain download for anything that does not work
+        // out: no share sheet, file too large to hold in memory, or a browser
+        // that refuses the call. The <a href> is left intact for exactly that.
+        download.addEventListener("click", async function (e) {
+            if (!canSaveToLibrary()) return;         // desktop: let the link run
+
+            const photo = photos[index];
+            const href = download.href;
+            e.preventDefault();
+
+            const original = download.textContent;
+            download.textContent = "Henter…";
+
+            try {
+                const res = await fetch(href);
+                if (!res.ok) throw new Error("http " + res.status);
+
+                // Check the size before pulling the body into memory.
+                const size = Number(res.headers.get("content-length") || 0);
+                if (size > MAX_SHARE_BYTES) throw new Error("too big");
+
+                const blob = await res.blob();
+                const name = decodeURIComponent((/download=([^&]*)/.exec(href) || [])[1] || "billede.jpg");
+                const file = new File([blob], name, { type: blob.type || "application/octet-stream" });
+
+                if (!navigator.canShare({ files: [file] })) throw new Error("cannot share this");
+                await navigator.share({ files: [file] });
+            } catch (err) {
+                // Cancelling the share sheet is not a failure — the guest
+                // changed their mind, and re-downloading would be rude.
+                if (err && err.name === "AbortError") return;
+                // Anything else: fall back to the ordinary download.
+                window.location.href = href;
+            } finally {
+                download.textContent = original;
             }
         });
 

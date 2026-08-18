@@ -49,15 +49,47 @@ DAY_FOLDER = "uploads/2026-08-15"
 VIDEO_FOLDER = DAY_FOLDER + "/video"
 BUCKET = "video"
 
-# 1080p og ca. 4 Mbit/s. To timer bliver da ~3,5 GB i stedet for de 15-40 GB,
-# kameraet leverer — og det er ikke pladsen, det handler om, men trafikken:
-# hver gang en gæst ser en tale, sendes filen igen.
-MAX_WIDTH = 1920
-MAX_HEIGHT = 1080
+# Det er ikke pladsen, det handler om, men trafikken: hver gang en gæst ser en
+# tale, sendes filen igen. En time i 1080p koster derfor dobbelt så meget i
+# trafik som den samme time i 720p, hver eneste gang nogen ser den.
+#
+# Derfor vælger scriptet som udgangspunkt opløsning efter længden:
+#
+#   korte klip (under 3 min)  ->  1080p.  Et minut fylder ~25 MB. Ligegyldigt.
+#   lange taler (over 3 min)  ->   720p.  Det er folk, der taler ved en pult;
+#                                         på en telefon kan man ikke se forskel,
+#                                         og det halverer den løbende regning.
+#
+# Originalerne bliver på jeres egen computer — det her er en visningskopi, ikke
+# et arkiv. Sørg for at have en sikkerhedskopi af råfilerne et andet sted.
+LONG_VIDEO_SECONDS = 180        # grænsen mellem "kort klip" og "lang tale"
+HEIGHT_SHORT = 1080
+HEIGHT_LONG = 720
+
 CRF = 21
-MAXRATE = "5M"
-BUFSIZE = "10M"
 AUDIO_BITRATE = "128k"
+
+# Bitloftet følger opløsningen. Bitrate skalerer med antallet af billedpunkter,
+# ikke med højden, så 720p får ~44 % af 1080p'ens loft og ikke 67 %.
+MAXRATE_1080 = 5000             # kbit/s
+
+
+def target_height(duration, forced):
+    """Hvor høj visningskopien skal være. `forced` er --height fra kommandolinjen."""
+    if forced:
+        return forced
+    return HEIGHT_LONG if duration > LONG_VIDEO_SECONDS else HEIGHT_SHORT
+
+
+def maxrate_for(height):
+    scaled = int(MAXRATE_1080 * (height / 1080.0) ** 2)
+    return max(scaled, 800)
+
+
+def bufsize_for(height):
+    """To sekunders buffer. Et loft med en buffer på fem gange loftet er ikke
+    noget loft — så kan en enkelt scene alligevel spidse langt op."""
+    return maxrate_for(height) * 2
 
 # Still-billedet bruges to steder: som lille felt i gitteret OG som det
 # fyldskærmsbillede, man ser, indtil man trykker play. 480 px er rigeligt til
@@ -201,7 +233,7 @@ def probe(path):
     }
 
 
-def transcode(src, dest):
+def transcode(src, dest, height):
     """
     H.264 High + AAC i MP4 — den ene kombination, alt kan afspille.
 
@@ -214,10 +246,11 @@ def transcode(src, dest):
         "-i", str(src),
         "-vf", ("scale='min(%d,iw)':'min(%d,ih)'"
                 ":force_original_aspect_ratio=decrease"
-                ":force_divisible_by=2" % (MAX_WIDTH, MAX_HEIGHT)),
+                ":force_divisible_by=2" % (int(height * 16 / 9), height)),
         "-c:v", "libx264", "-profile:v", "high", "-level", "4.0",
         "-pix_fmt", "yuv420p", "-preset", "slow",
-        "-crf", str(CRF), "-maxrate", MAXRATE, "-bufsize", BUFSIZE,
+        "-crf", str(CRF), "-maxrate", "%dk" % maxrate_for(height),
+        "-bufsize", "%dk" % bufsize_for(height),
         "-c:a", "aac", "-b:a", AUDIO_BITRATE, "-ac", "2",
         "-movflags", "+faststart",
         str(dest),
@@ -276,7 +309,7 @@ def taken_at(created, fallback_path):
     return datetime.fromtimestamp(stamp, tz=timezone.utc).isoformat()
 
 
-def handle(path, base, key, seen, dry_run, workdir):
+def handle(path, base, key, seen, dry_run, workdir, forced_height=None):
     file_hash = digest(path)
     if file_hash in seen:
         return "skipped"
@@ -284,14 +317,19 @@ def handle(path, base, key, seen, dry_run, workdir):
 
     info = probe(path)
     name = os.path.basename(path)
-    print("    %s — %s, omkoder…" % (name, human_time(info["duration"])))
+    height = target_height(info["duration"], forced_height)
+    # Sig hvilken opløsning der blev valgt og hvorfor — ellers er det ikke til
+    # at gennemskue, hvorfor to filer fra samme mappe endte forskelligt.
+    why = "valgt" if forced_height else ("lang" if height == HEIGHT_LONG else "kort")
+    print("    %s — %s, %dp (%s), omkoder…"
+          % (name, human_time(info["duration"]), height, why))
 
     video_id = str(uuid.uuid4())
     mp4 = os.path.join(workdir, video_id + ".mp4")
     jpg = os.path.join(workdir, video_id + "_t.jpg")
 
     started = time.time()
-    transcode(path, mp4)
+    transcode(path, mp4, height)
     poster(mp4, jpg, info["duration"])
 
     # Mål og længde læses fra den FÆRDIGE fil: skaleringen og rotationen er
@@ -370,6 +408,10 @@ def main():
     ap.add_argument("folder", help="mappe med videoerne (undermapper tages med)")
     ap.add_argument("--dry-run", action="store_true", help="omkod, men læg intet op")
     ap.add_argument("--limit", type=int, help="stop efter så mange filer — god til en prøvetur")
+    ap.add_argument("--height", type=int, metavar="PX",
+                    help="tving en opløsning, fx 720 eller 1080. Uden den vælger "
+                         "scriptet selv: 1080p til klip under %d min, 720p til de "
+                         "lange taler." % (LONG_VIDEO_SECONDS // 60))
     args = ap.parse_args()
 
     for tool in ("ffmpeg", "ffprobe"):
@@ -405,7 +447,7 @@ def main():
         for i, path in enumerate(files, 1):
             print("  [%d/%d] %s" % (i, len(files), os.path.basename(path)))
             try:
-                counts[handle(path, base, key, seen, args.dry_run, workdir)] += 1
+                counts[handle(path, base, key, seen, args.dry_run, workdir, args.height)] += 1
             except Exception as e:
                 counts["failed"] += 1
                 print("    FEJL  %s" % e)

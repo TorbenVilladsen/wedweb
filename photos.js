@@ -185,23 +185,66 @@
             (navigator.maxTouchPoints || 0) > 0);
     }
 
-    // iOS has a shortcut nothing else does: long-press a photo and "Føj til
-    // Billeder" writes it straight to the camera roll — no share sheet, no
-    // waiting for a download. It works here already (nothing in the CSS blocks
-    // the callout, and the swipe handlers are passive), it is just invisible
-    // unless you happen to know. Worth one line of text.
-    //
-    // iPadOS reports itself as a Mac, hence the second half.
-    function isIOS() {
-        return /iP(hone|ad|od)/.test(navigator.userAgent) ||
-            (navigator.platform === "MacIntel" && (navigator.maxTouchPoints || 0) > 1);
-    }
-
     // Sharing means holding the whole file in memory first. A 2 MB photo is
     // nothing; a ten-minute speech is not, and buffering that on a phone over
     // mobile data — with no progress bar, because the share sheet has not
     // opened yet — fails badly. Above this we leave it as a normal download.
     const MAX_SHARE_BYTES = 100 * 1024 * 1024;
+
+    // Bulk save: navigator.share() takes an array, and iOS turns that into
+    // "Gem 35 billeder" — the whole set into the camera roll in one action.
+    // Nothing else on the web can do that.
+    //
+    // Two caps, whichever comes first. Both exist because every file has to be
+    // held in memory at once before the sheet can open.
+    const BULK_MAX_FILES = 50;
+
+    // How many downloads run at a time. Sequential is honest but slow — fifty
+    // photos over 4G would leave someone staring at a counter for a minute.
+    const BULK_CONCURRENCY = 3;
+
+    function bulkName(photo) {
+        return "bryllup-15-08-2026-" + String(photo.id || "").slice(0, 8) + ".jpg";
+    }
+
+    /**
+     * Download a set of photos into File objects, newest first, stopping at
+     * the byte budget. Individual failures are skipped rather than sinking the
+     * whole batch — 34 of 35 photos is a good outcome; zero is not.
+     */
+    async function fetchForBulk(list, onProgress) {
+        const files = new Array(list.length);
+        let next = 0, done = 0, bytes = 0, stopped = false;
+
+        async function worker() {
+            while (!stopped) {
+                const i = next++;
+                if (i >= list.length) return;
+                const photo = list[i];
+                try {
+                    // The display copy, never original_path: fifty of the
+                    // photographer's originals is a gigabyte, and 2560 px is
+                    // already more than a phone screen can show.
+                    const res = await fetch(publicUrl(photo.storage_path, photo.kind));
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        bytes += blob.size;
+                        if (bytes > MAX_SHARE_BYTES) { stopped = true; return; }
+                        files[i] = new File([blob], bulkName(photo),
+                            { type: blob.type || "image/jpeg" });
+                    }
+                } catch (err) {
+                    /* one photo missing beats the whole batch failing */
+                }
+                onProgress(++done, list.length);
+            }
+        }
+
+        const workers = [];
+        for (let n = 0; n < BULK_CONCURRENCY; n++) workers.push(worker());
+        await Promise.all(workers);
+        return files.filter(Boolean);
+    }
 
     // mm:ss, so a tile can say how long the speech is before anyone commits to
     // it on mobile data.
@@ -1329,21 +1372,35 @@
         const peopleWrap = el("div", "gallery-people");
         peopleWrap.hidden = true;
         const peopleId = "wed-people-" + Math.random().toString(36).slice(2, 8);
-        const peopleLabel = el("label", "gallery-people-label", "Billeder fra");
+        const peopleLabel = el("label", "gallery-people-label", "Vis");
         peopleLabel.setAttribute("for", peopleId);
         const people = el("select", "gallery-people-select");
         people.id = peopleId;
-        people.appendChild(el("option", null, "Alle, der har delt"));
-        people.firstChild.value = "";
+
+        // Every option carries its own filter in dataset rather than encoding
+        // one in the value. A guest called "video" would otherwise select the
+        // speeches, and names come from the invitations — we do not get to
+        // pick them.
+        const showAll = el("option", null, "Alt fra dagen");
+        showAll.value = "";
+        people.appendChild(showAll);
         peopleWrap.appendChild(peopleLabel);
         peopleWrap.appendChild(people);
 
         const count = el("p", "gallery-count");
+
+        // Save everything on screen straight into the phone's photo library.
+        // Only worth offering where the share sheet exists at all.
+        const bulk = el("button", "gallery-bulk");
+        bulk.type = "button";
+        bulk.hidden = true;
+
         const grid = el("div", "photo-grid");
         const sentinel = el("div", "gallery-sentinel");
         wrap.appendChild(filters);
         wrap.appendChild(peopleWrap);
         wrap.appendChild(count);
+        wrap.appendChild(bulk);
         wrap.appendChild(grid);
         wrap.appendChild(sentinel);
         mount.appendChild(wrap);
@@ -1360,20 +1417,20 @@
         let total = null;
         let includeDeleted = false;
         let filter = null;              // null = alle
+        let hasVideos = false;          // decides whether "alle" says "og videoer"
 
         // The photographer's set is thousands of images and lands on top of
         // everything, so without this the guests' own photos are pushed
         // hundreds of pages down and effectively disappear. The ten videos
         // would vanish the same way, only faster.
         function buildFilters() {
-            // There is deliberately no "Alle" and no "Gæsterne" pill. Until the
-            // photographer's set and the videos are imported those two say the
-            // same thing as each other and as the unfiltered gallery, and the
-            // people dropdown now covers "whose photos". Both tabs below only
-            // appear once there is something behind them, so most of the time
-            // this bar is empty and stays out of the way entirely.
+            // Only one pill left. "Alle" and "Gæsterne" said the same thing as
+            // each other and as the unfiltered gallery, and the videos moved
+            // into the dropdown below — one control answering "what am I
+            // looking at" beats a row of pills and a menu disagreeing about it.
+            // This one appears only once the photographer's set is imported, so
+            // most of the time the bar is empty and stays out of the way.
             const choices = [
-                { id: "video", value: { kind: "video" }, label: "Video" },
                 { id: "photographer", value: { source: "photographer" }, label: "Fotografen" }
             ];
             const buttons = [];
@@ -1419,26 +1476,49 @@
             });
 
             people.addEventListener("change", function () {
-                const name = people.value;
-                // A person and a tab are mutually exclusive, so choosing one
-                // clears the other.
+                const chosen = people.selectedOptions && people.selectedOptions[0];
+                // A menu choice and a tab are two answers to the same question,
+                // so picking one clears the other.
                 activate(null);
-                filter = name ? { guestName: name } : null;
+                if (chosen && chosen.dataset.kind) filter = { kind: chosen.dataset.kind };
+                else if (people.value) filter = { guestName: people.value };
+                else filter = null;
                 reload();
             });
 
-            // The list is only worth showing once there is a choice to make:
-            // with a single uploader it just repeats the gallery itself.
-            fetchGuestNames(opts.folder).then(function (names) {
-                if (names.length < 2) return;
+            // Two independent questions feed the same menu, so both have to
+            // land before deciding whether it is worth showing at all.
+            Promise.all([
+                countMatching({ kind: "video" }),
+                fetchGuestNames(opts.folder)
+            ]).then(function (results) {
+                const videoCount = results[0];
+                const names = results[1];
+                hasVideos = videoCount > 0;
+                renderCount();          // the unfiltered wording depends on it
 
-                names.forEach(function (entry) {
-                    const option = el("option", null, entry.name + " (" + entry.count + ")");
-                    option.value = entry.name;
+                if (videoCount > 0) {
+                    const option = el("option", null,
+                        "Taler og underholdning (" + videoCount + ")");
+                    option.value = "kind:video";      // only for the DOM; see dataset
+                    option.dataset.kind = "video";
                     people.appendChild(option);
-                });
+                }
 
-                peopleWrap.hidden = false;
+                // One uploader on their own just repeats the whole gallery.
+                if (names.length > 1) {
+                    const group = el("optgroup");
+                    group.label = "Billeder fra";
+                    names.forEach(function (entry) {
+                        const option = el("option", null,
+                            entry.name + " (" + entry.count + ")");
+                        option.value = entry.name;
+                        group.appendChild(option);
+                    });
+                    people.appendChild(group);
+                }
+
+                if (videoCount > 0 || names.length > 1) peopleWrap.hidden = false;
             });
         }
 
@@ -1455,10 +1535,88 @@
                 count.textContent = total + " " + noun + " fra " + filter.guestName;
             } else if (filter && filter.kind === "video") {
                 count.textContent = total === 1 ? "1 video fra dagen" : total + " videoer fra dagen";
+            } else if (hasVideos) {
+                // The unfiltered list holds both, and calling fourteen speeches
+                // "billeder" is just wrong.
+                count.textContent = total + " billeder og videoer fra dagen";
             } else {
                 count.textContent = total + " " + noun + " fra dagen";
             }
         }
+
+        // --- BULK SAVE ---------------------------------------------------
+        // Deliberately two taps. navigator.share() needs transient user
+        // activation, and downloading thirty photos outlives it by a mile — a
+        // single tap would download everything and then be refused by the
+        // browser at the last moment. So: first tap fetches and reports
+        // progress, second tap opens the sheet inside a fresh gesture.
+        let staged = null;
+
+        function bulkCandidates() {
+            // Videos are far too big to hold alongside anything else, and a
+            // guest's hidden photo should not reappear in their camera roll.
+            return photos
+                .filter(function (p) { return p.kind !== "video" && !p.deleted_at; })
+                .slice(0, BULK_MAX_FILES);
+        }
+
+        function renderBulk() {
+            if (!canSaveToLibrary()) { bulk.hidden = true; return; }
+            if (staged) {
+                bulk.hidden = false;
+                bulk.disabled = false;
+                bulk.classList.add("is-ready");
+                bulk.textContent = "Gem " + staged.length + " billeder nu";
+                return;
+            }
+            const n = bulkCandidates().length;
+            // One photo is what the button in the lightbox is for.
+            bulk.hidden = n < 2;
+            bulk.disabled = false;
+            bulk.classList.remove("is-ready");
+            bulk.textContent = "Gem alle " + n + " billeder";
+        }
+
+        async function prepareBulk() {
+            const list = bulkCandidates();
+            if (!list.length) return;
+
+            bulk.disabled = true;
+            bulk.textContent = "Henter 0/" + list.length + "…";
+
+            const files = await fetchForBulk(list, function (done, total) {
+                bulk.textContent = "Henter " + done + "/" + total + "…";
+            });
+
+            if (!files.length) {
+                bulk.textContent = "Billederne kunne ikke hentes";
+                setTimeout(renderBulk, 2500);
+                return;
+            }
+            staged = files;
+            renderBulk();
+        }
+
+        async function saveStaged() {
+            try {
+                if (!navigator.canShare({ files: staged })) throw new Error("cannot share");
+                await navigator.share({ files: staged });
+                staged = null;                    // free the memory promptly
+            } catch (err) {
+                // Cancelled: keep them staged so a second try costs no traffic.
+                if (err && err.name === "AbortError") return;
+                staged = null;
+                bulk.textContent = "Kunne ikke gemmes";
+                setTimeout(renderBulk, 2500);
+                return;
+            }
+            renderBulk();
+        }
+
+        bulk.addEventListener("click", function () {
+            if (staged) saveStaged();
+            else prepareBulk();
+        });
 
         function addTile(photo, atStart) {
             if (atStart) photos.unshift(photo);
@@ -1520,6 +1678,10 @@
             lowestSeq = null;
             exhausted = false;
             total = null;
+            // Whatever was staged belongs to the view being left behind, and
+            // it is up to 100 MB of it. Drop it.
+            staged = null;
+            renderBulk();
             loadMore();
         }
 
@@ -1540,6 +1702,9 @@
                     addTile(row, false);
                     if (lowestSeq == null || row.seq < lowestSeq) lowestSeq = row.seq;
                 });
+                // The button counts what is actually on screen, so it has to
+                // follow every page that lands.
+                if (!staged) renderBulk();
 
                 if (page.rows.length < CONFIG.PAGE_SIZE) {
                     exhausted = true;
@@ -1636,16 +1801,9 @@
 
         const caption = el("figcaption", "lightbox-caption");
 
-        // Only on iPhone/iPad, and only for photos: long-pressing a <video>
-        // offers no such thing, so the tip would be a lie there.
-        const hint = el("p", "lightbox-hint",
-            "Tip: hold fingeren på billedet for at gemme det i Billeder");
-        hint.hidden = true;
-
         figure.appendChild(img);
         figure.appendChild(video);
         figure.appendChild(caption);
-        figure.appendChild(hint);
 
         // Stop a video dead and drop its connection. Without this a video you
         // swiped past keeps streaming in the background — invisible, audible
@@ -1767,7 +1925,6 @@
             download.textContent = canSaveToLibrary()
                 ? (isVideo ? "Gem video" : "Gem billede")
                 : "Download";
-            hint.hidden = isVideo || !isIOS();
             del.hidden = !canDelete(photo);
             del.textContent = adminMode ? "Slet permanent" : "Slet";
             resetDeleteUI();

@@ -620,9 +620,27 @@ python3 tools/import_video.py ~/Film/bryllup
 ```
 
 Scriptet omkoder hver video til H.264/AAC i en MP4 — den ene kombination, som
-alle telefoner og computere kan afspille — skalerer den ned til 1080p, tager et
-still-billede til gitteret og lægger begge dele op. Den kan afbrydes og startes
-igen ligesom billedimporten.
+alle telefoner og computere kan afspille — tager et still-billede til gitteret
+og lægger begge dele op. Den kan afbrydes og startes igen ligesom
+billedimporten.
+
+### Opløsningen vælges efter længden
+
+| Klippet | Opløsning | Hvorfor |
+|---|---|---|
+|  under 3 min | 1080p | Et minut fylder ~25 MB. Det er ligegyldigt. |
+|  over 3 min | 720p | Folk, der taler ved en pult. På en telefon kan man ikke se forskel — og det halverer trafikken, hver eneste gang nogen ser talen. |
+
+Scriptet skriver for hver fil, hvad den valgte og hvorfor. Vil I bestemme selv:
+
+```bash
+python3 tools/import_video.py ~/Film/bryllup --height 720
+```
+
+> **Originalerne bliver liggende hos jer.** Det, der kommer på siden, er en
+> visningskopi — der lægges ingen råfil op for video. Sørg for en
+> sikkerhedskopi af de oprindelige filer et andet sted; hjemmesiden er ikke
+> et arkiv.
 
 ### Det, der koster penge, er trafikken — ikke pladsen
 

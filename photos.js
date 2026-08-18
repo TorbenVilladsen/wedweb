@@ -191,61 +191,6 @@
     // opened yet — fails badly. Above this we leave it as a normal download.
     const MAX_SHARE_BYTES = 100 * 1024 * 1024;
 
-    // Bulk save: navigator.share() takes an array, and iOS turns that into
-    // "Gem 35 billeder" — the whole set into the camera roll in one action.
-    // Nothing else on the web can do that.
-    //
-    // Two caps, whichever comes first. Both exist because every file has to be
-    // held in memory at once before the sheet can open.
-    const BULK_MAX_FILES = 50;
-
-    // How many downloads run at a time. Sequential is honest but slow — fifty
-    // photos over 4G would leave someone staring at a counter for a minute.
-    const BULK_CONCURRENCY = 3;
-
-    function bulkName(photo) {
-        return "bryllup-15-08-2026-" + String(photo.id || "").slice(0, 8) + ".jpg";
-    }
-
-    /**
-     * Download a set of photos into File objects, newest first, stopping at
-     * the byte budget. Individual failures are skipped rather than sinking the
-     * whole batch — 34 of 35 photos is a good outcome; zero is not.
-     */
-    async function fetchForBulk(list, onProgress) {
-        const files = new Array(list.length);
-        let next = 0, done = 0, bytes = 0, stopped = false;
-
-        async function worker() {
-            while (!stopped) {
-                const i = next++;
-                if (i >= list.length) return;
-                const photo = list[i];
-                try {
-                    // The display copy, never original_path: fifty of the
-                    // photographer's originals is a gigabyte, and 2560 px is
-                    // already more than a phone screen can show.
-                    const res = await fetch(publicUrl(photo.storage_path, photo.kind));
-                    if (res.ok) {
-                        const blob = await res.blob();
-                        bytes += blob.size;
-                        if (bytes > MAX_SHARE_BYTES) { stopped = true; return; }
-                        files[i] = new File([blob], bulkName(photo),
-                            { type: blob.type || "image/jpeg" });
-                    }
-                } catch (err) {
-                    /* one photo missing beats the whole batch failing */
-                }
-                onProgress(++done, list.length);
-            }
-        }
-
-        const workers = [];
-        for (let n = 0; n < BULK_CONCURRENCY; n++) workers.push(worker());
-        await Promise.all(workers);
-        return files.filter(Boolean);
-    }
-
     // mm:ss, so a tile can say how long the speech is before anyone commits to
     // it on mobile data.
     function runtime(seconds) {
@@ -1389,18 +1334,11 @@
 
         const count = el("p", "gallery-count");
 
-        // Save everything on screen straight into the phone's photo library.
-        // Only worth offering where the share sheet exists at all.
-        const bulk = el("button", "gallery-bulk");
-        bulk.type = "button";
-        bulk.hidden = true;
-
         const grid = el("div", "photo-grid");
         const sentinel = el("div", "gallery-sentinel");
         wrap.appendChild(filters);
         wrap.appendChild(peopleWrap);
         wrap.appendChild(count);
-        wrap.appendChild(bulk);
         wrap.appendChild(grid);
         wrap.appendChild(sentinel);
         mount.appendChild(wrap);
@@ -1544,80 +1482,6 @@
             }
         }
 
-        // --- BULK SAVE ---------------------------------------------------
-        // Deliberately two taps. navigator.share() needs transient user
-        // activation, and downloading thirty photos outlives it by a mile — a
-        // single tap would download everything and then be refused by the
-        // browser at the last moment. So: first tap fetches and reports
-        // progress, second tap opens the sheet inside a fresh gesture.
-        let staged = null;
-
-        function bulkCandidates() {
-            // Videos are far too big to hold alongside anything else, and a
-            // guest's hidden photo should not reappear in their camera roll.
-            return photos
-                .filter(function (p) { return p.kind !== "video" && !p.deleted_at; })
-                .slice(0, BULK_MAX_FILES);
-        }
-
-        function renderBulk() {
-            if (!canSaveToLibrary()) { bulk.hidden = true; return; }
-            if (staged) {
-                bulk.hidden = false;
-                bulk.disabled = false;
-                bulk.classList.add("is-ready");
-                bulk.textContent = "Gem " + staged.length + " billeder nu";
-                return;
-            }
-            const n = bulkCandidates().length;
-            // One photo is what the button in the lightbox is for.
-            bulk.hidden = n < 2;
-            bulk.disabled = false;
-            bulk.classList.remove("is-ready");
-            bulk.textContent = "Gem alle " + n + " billeder";
-        }
-
-        async function prepareBulk() {
-            const list = bulkCandidates();
-            if (!list.length) return;
-
-            bulk.disabled = true;
-            bulk.textContent = "Henter 0/" + list.length + "…";
-
-            const files = await fetchForBulk(list, function (done, total) {
-                bulk.textContent = "Henter " + done + "/" + total + "…";
-            });
-
-            if (!files.length) {
-                bulk.textContent = "Billederne kunne ikke hentes";
-                setTimeout(renderBulk, 2500);
-                return;
-            }
-            staged = files;
-            renderBulk();
-        }
-
-        async function saveStaged() {
-            try {
-                if (!navigator.canShare({ files: staged })) throw new Error("cannot share");
-                await navigator.share({ files: staged });
-                staged = null;                    // free the memory promptly
-            } catch (err) {
-                // Cancelled: keep them staged so a second try costs no traffic.
-                if (err && err.name === "AbortError") return;
-                staged = null;
-                bulk.textContent = "Kunne ikke gemmes";
-                setTimeout(renderBulk, 2500);
-                return;
-            }
-            renderBulk();
-        }
-
-        bulk.addEventListener("click", function () {
-            if (staged) saveStaged();
-            else prepareBulk();
-        });
-
         function addTile(photo, atStart) {
             if (atStart) photos.unshift(photo);
             else photos.push(photo);
@@ -1678,10 +1542,6 @@
             lowestSeq = null;
             exhausted = false;
             total = null;
-            // Whatever was staged belongs to the view being left behind, and
-            // it is up to 100 MB of it. Drop it.
-            staged = null;
-            renderBulk();
             loadMore();
         }
 
@@ -1702,9 +1562,6 @@
                     addTile(row, false);
                     if (lowestSeq == null || row.seq < lowestSeq) lowestSeq = row.seq;
                 });
-                // The button counts what is actually on screen, so it has to
-                // follow every page that lands.
-                if (!staged) renderBulk();
 
                 if (page.rows.length < CONFIG.PAGE_SIZE) {
                     exhausted = true;

@@ -476,45 +476,6 @@
     outline-offset: 2px;
 }
 
-/* Save the whole visible set to the phone. Only ever rendered on a device
-   with a share sheet, so it can afford to be a full-width, thumb-sized
-   target rather than a discreet link. */
-.gallery-bulk {
-    display: block;
-    margin: 0 auto 1.4rem;
-    max-width: 20rem;
-    width: 100%;
-    padding: 0.75rem 1.4rem;
-    border: 1px solid rgba(196, 162, 101, 0.5);
-    border-radius: 50px;
-    background: none;
-    color: var(--text-light);
-    font-family: var(--font-body);
-    font-size: 0.78rem;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background-color 0.25s ease, color 0.25s ease;
-}
-
-.gallery-bulk[hidden] {
-    display: none;
-}
-
-.gallery-bulk:disabled {
-    opacity: 0.6;
-    cursor: default;
-}
-
-/* Once the files are downloaded the button changes job — from "fetch these"
-   to "save these" — so it changes weight to match. */
-.gallery-bulk:not(:disabled):hover,
-.gallery-bulk.is-ready {
-    background: var(--accent-gold);
-    border-color: var(--accent-gold);
-    color: #fff;
-}
-
 .photo-grid {
     display: grid;
     gap: 0.5rem;

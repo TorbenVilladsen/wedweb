@@ -1456,7 +1456,7 @@
                 scanned.forEach(function (e) {
                     addOption(people, e.name + " (" + e.count + ")", e.name);
                 });
-                addGroup("Fotografen", photographer);
+                addGroup("Billeder fra Fotografen", photographer);
                 addGroup("Billeder fra gæsterne", guests);
 
                 if (videoCount > 0 || names.length > 1) peopleWrap.hidden = false;

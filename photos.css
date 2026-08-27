@@ -395,39 +395,6 @@
     color: var(--text-light);
 }
 
-/* --- Whose photos: alle / fotografen / gæsterne --- */
-.gallery-filters {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1.2rem;
-}
-
-.gallery-filter {
-    padding: 0.5rem 1.2rem;
-    border: 1px solid rgba(196, 162, 101, 0.5);
-    border-radius: 50px;
-    background: none;
-    color: var(--text-light);
-    font-family: var(--font-body);
-    font-size: 0.78rem;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background-color 0.25s ease, color 0.25s ease;
-}
-
-.gallery-filter:hover {
-    color: var(--text);
-}
-
-.gallery-filter.is-active {
-    background: var(--accent-gold);
-    border-color: var(--accent-gold);
-    color: #fff;
-}
-
 /* --- Whose photos, by name --- */
 .gallery-people {
     display: flex;
@@ -878,17 +845,6 @@ body.lightbox-open {
         width: 40px;
         height: 60px;
         font-size: 1.6rem;
-    }
-
-    /* Four tabs overflow 375 px by a hair and wrap 3+1, which reads as a
-       mistake rather than a layout. Half-width pills wrap 2+2 on purpose —
-       and shrinking them to fit one row would have put every tab under the
-       thumb size, which is the wrong trade on the device most guests use. */
-    .gallery-filter {
-        flex: 0 1 calc(50% - 0.25rem);
-        padding: 0.65rem 0.5rem;
-        font-size: 0.72rem;
-        letter-spacing: 0.5px;
     }
 
     /* The label above rather than beside it, so a long name has the whole

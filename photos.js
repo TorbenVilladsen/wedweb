@@ -693,7 +693,8 @@
      *
      * @param {string} [folder] same folder filter the gallery itself uses, so
      *        /test/ uploaders never show up in the real gallery's list.
-     * @returns {Promise<Array<{name: string, count: number}>>} empty on error —
+     * @returns {Promise<Array<{name: string, count: number, source: string,
+     *          imported: boolean}>>} empty on error —
      *          a missing dropdown is better than a broken gallery.
      */
     async function fetchGuestNames(folder) {
@@ -707,7 +708,8 @@
             // lose whoever sorts last.
             for (let page = 0; page < 10; page++) {
                 let url = CONFIG.SUPABASE_URL + "/rest/v1/photos" +
-                    "?select=guest_name&deleted_at=is.null&guest_name=not.is.null" +
+                    "?select=guest_name,source,original_path" +
+                    "&deleted_at=is.null&guest_name=not.is.null" +
                     "&limit=" + step + "&offset=" + offset;
                 if (folder) url += "&storage_path=like." + encodeURIComponent(folder + "/*");
 
@@ -718,7 +720,16 @@
                 rows.forEach(function (row) {
                     const name = String(row.guest_name || "").trim();
                     if (!name) return;
-                    tally.set(name, (tally.get(name) || 0) + 1);
+                    const seen = tally.get(name) ||
+                        { name: name, count: 0, source: row.source, imported: false };
+                    seen.count++;
+                    if (row.source) seen.source = row.source;
+                    // A browser upload never has an original: the phone shrank
+                    // the picture before sending it. So an original_path means
+                    // this row came from one of our own import scripts, which
+                    // is what separates a scanned roll of film from a guest.
+                    if (row.original_path) seen.imported = true;
+                    tally.set(name, seen);
                 });
 
                 if (rows.length < step) break;
@@ -730,9 +741,7 @@
 
         // Most photos first: the people who sent twenty are the ones anyone
         // is likely to go looking for. Ties fall back to Danish alphabetical.
-        return Array.from(tally, function (entry) {
-            return { name: entry[0], count: entry[1] };
-        }).sort(function (a, b) {
+        return Array.from(tally.values()).sort(function (a, b) {
             return b.count - a.count || a.name.localeCompare(b.name, "da");
         });
     }
@@ -1308,8 +1317,6 @@
     function buildGallery(mount, options) {
         const opts = options || {};
         const wrap = el("div", "wed-gallery");
-        const filters = el("div", "gallery-filters");
-        filters.hidden = true;          // shown only once we know it is useful
 
         // "Hvem har taget billedet" — a native <select> on purpose: on a phone
         // it opens the platform's own wheel, which handles forty names far
@@ -1336,7 +1343,6 @@
 
         const grid = el("div", "photo-grid");
         const sentinel = el("div", "gallery-sentinel");
-        wrap.appendChild(filters);
         wrap.appendChild(peopleWrap);
         wrap.appendChild(count);
         wrap.appendChild(grid);
@@ -1361,71 +1367,42 @@
         // everything, so without this the guests' own photos are pushed
         // hundreds of pages down and effectively disappear. The ten videos
         // would vanish the same way, only faster.
+        // The menu is the only filter now. It answers one question — "what am
+        // I looking at" — in four sections: everything, the speeches, the
+        // photographer's set, the disposable camera, and the guests.
+        //
+        // There used to be a "Fotografen" pill beside it saying the same thing
+        // as one of these entries. Two controls disagreeing about the same
+        // question is worse than one, so the pill is gone.
         function buildFilters() {
-            // Only one pill left. "Alle" and "Gæsterne" said the same thing as
-            // each other and as the unfiltered gallery, and the videos moved
-            // into the dropdown below — one control answering "what am I
-            // looking at" beats a row of pills and a menu disagreeing about it.
-            // This one appears only once the photographer's set is imported, so
-            // most of the time the bar is empty and stays out of the way.
-            const choices = [
-                { id: "photographer", value: { source: "photographer" }, label: "Fotografen" }
-            ];
-            const buttons = [];
-            let active = null;
-
-            function activate(id) {
-                active = id;
-                buttons.forEach(function (b) {
-                    b.classList.toggle("is-active", b.dataset.filterId === id);
+            function addOption(parent, label, value, data) {
+                const option = el("option", null, label);
+                option.value = value;
+                if (data) Object.keys(data).forEach(function (k) {
+                    option.dataset[k] = data[k];
                 });
+                parent.appendChild(option);
+                return option;
             }
 
-            choices.forEach(function (choice) {
-                const button = el("button", "gallery-filter", choice.label);
-                button.type = "button";
-                button.dataset.filterId = choice.id;
-                button.hidden = true;
-
-                button.addEventListener("click", function () {
-                    // Pressing the active tab again turns it off. With no
-                    // "Alle" pill left this is the way back to the whole
-                    // gallery, so a tab must not be a one-way door.
-                    const turningOff = active === choice.id;
-                    activate(turningOff ? null : choice.id);
-                    filter = turningOff ? null : choice.value;
-                    // A tab and a person are two answers to the same question,
-                    // so picking a tab drops the person rather than quietly
-                    // intersecting the two into an empty page.
-                    people.value = "";
-                    reload();
+            function addGroup(label, entries) {
+                if (!entries.length) return;
+                const group = el("optgroup");
+                group.label = label;
+                entries.forEach(function (e) {
+                    addOption(group, e.name + " (" + e.count + ")", e.name);
                 });
-
-                buttons.push(button);
-                filters.appendChild(button);
-
-                countMatching(choice.value).then(function (n) {
-                    if (n === 0) return;
-                    button.hidden = false;
-                    // The bar reveals itself only when a pill inside it does,
-                    // so an empty row never takes up space above the photos.
-                    filters.hidden = false;
-                });
-            });
+                people.appendChild(group);
+            }
 
             people.addEventListener("change", function () {
                 const chosen = people.selectedOptions && people.selectedOptions[0];
-                // A menu choice and a tab are two answers to the same question,
-                // so picking one clears the other.
-                activate(null);
                 if (chosen && chosen.dataset.kind) filter = { kind: chosen.dataset.kind };
                 else if (people.value) filter = { guestName: people.value };
                 else filter = null;
                 reload();
             });
 
-            // Two independent questions feed the same menu, so both have to
-            // land before deciding whether it is worth showing at all.
             Promise.all([
                 countMatching({ kind: "video" }),
                 fetchGuestNames(opts.folder)
@@ -1436,25 +1413,31 @@
                 renderCount();          // the unfiltered wording depends on it
 
                 if (videoCount > 0) {
-                    const option = el("option", null,
-                        "Taler og underholdning (" + videoCount + ")");
-                    option.value = "kind:video";      // only for the DOM; see dataset
-                    option.dataset.kind = "video";
-                    people.appendChild(option);
+                    addOption(people, "Taler og underholdning (" + videoCount + ")",
+                        "kind:video", { kind: "video" });
                 }
 
-                // One uploader on their own just repeats the whole gallery.
-                if (names.length > 1) {
-                    const group = el("optgroup");
-                    group.label = "Billeder fra";
-                    names.forEach(function (entry) {
-                        const option = el("option", null,
-                            entry.name + " (" + entry.count + ")");
-                        option.value = entry.name;
-                        group.appendChild(option);
-                    });
-                    people.appendChild(group);
-                }
+                // Three kinds of name, told apart by the data rather than by a
+                // hard-coded list: the photographer's batches carry his source,
+                // our other imports carry an original file, and everything left
+                // is a guest who used the upload button.
+                const photographer = names.filter(function (n) {
+                    return n.source === "photographer";
+                });
+                const scanned = names.filter(function (n) {
+                    return n.source !== "photographer" && n.imported;
+                });
+                const guests = names.filter(function (n) {
+                    return n.source !== "photographer" && !n.imported;
+                });
+
+                addGroup("Fotografen", photographer);
+                // Standalone rather than in a group: one entry under a heading
+                // of the same name reads as a stutter.
+                scanned.forEach(function (e) {
+                    addOption(people, e.name + " (" + e.count + ")", e.name);
+                });
+                addGroup("Billeder fra gæsterne", guests);
 
                 if (videoCount > 0 || names.length > 1) peopleWrap.hidden = false;
             });
@@ -1502,7 +1485,11 @@
             img.decoding = "async";
             img.alt = isVideo
                 ? (photo.title || "Video fra brylluppet")
-                : (photo.guest_name ? "Billede delt af " + photo.guest_name : "Billede fra brylluppet");
+                : (photo.guest_name
+                    ? (photo.source === "photographer"
+                        ? "Billede fra " + photo.guest_name
+                        : "Billede delt af " + photo.guest_name)
+                    : "Billede fra brylluppet");
             if (photo.width && photo.height) {
                 img.width = photo.width;
                 img.height = photo.height;
@@ -1758,13 +1745,20 @@
                 img.src = publicUrl(photo.storage_path, photo.kind);
             }
 
-            // The photographer's images carry no guest_name — saying nothing at
-            // all would read as a photo nobody will admit to.
+            // A name always wins, whatever the source. An imported batch can
+            // carry one too — "Engangskamera", "Mormors kamera" — and throwing
+            // it away to print "Fotografens billede" loses the only thing that
+            // said where the picture actually came from.
+            //
+            // How it is phrased depends on the source: a person shares a photo,
+            // a camera or a collection is merely where it came from.
             const byline = isVideo
                 ? (photo.title || "Video fra brylluppet")
-                : (photo.source === "photographer"
-                    ? "Fotografens billede"
-                    : (photo.guest_name ? "Delt af " + photo.guest_name : ""));
+                : (photo.guest_name
+                    ? (photo.source === "photographer"
+                        ? "Billede fra " + photo.guest_name
+                        : "Delt af " + photo.guest_name)
+                    : (photo.source === "photographer" ? "Fotografens billede" : ""));
 
             img.alt = byline || "Billede fra brylluppet";
 

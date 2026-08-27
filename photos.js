@@ -66,6 +66,13 @@
         THUMB_EDGE: 480,
         THUMB_Q: 0.7,
 
+        // Which section greets people first. The gallery is otherwise newest
+        // first, which means whichever batch was imported last — an accident of
+        // the order we happened to run the imports in. Empty string turns it
+        // off. Must name a section small enough to fit one page; anything
+        // larger is ignored rather than half-shown.
+        PINNED_NAME: "Brudeparbilleder",
+
         // Rows are tiny and the images below them are lazy, so a bigger page
         // costs almost nothing — but it halves the number of round trips
         // needed to scroll through several thousand of the photographer's.
@@ -605,6 +612,16 @@
             // comma is not a delimiter here either — eq. takes one value.
             if (filter && filter.guestName) {
                 url += "&guest_name=eq." + encodeURIComponent(filter.guestName);
+            }
+            // Everything EXCEPT one section — the pinned rows are shown above,
+            // and without this they would appear twice.
+            //
+            // Not a plain neq: in SQL, `guest_name <> 'x'` is NULL for a row
+            // with no name, so a bare neq would silently drop all 17 videos
+            // along with the section being excluded.
+            if (filter && filter.excludeName) {
+                url += "&or=(guest_name.is.null,guest_name.neq." +
+                    encodeURIComponent(filter.excludeName) + ")";
             }
             return url;
         }
@@ -1362,6 +1379,7 @@
         let includeDeleted = false;
         let filter = null;              // null = alle
         let hasVideos = false;          // decides whether "alle" says "og videoer"
+        let pinnedTotal = 0;            // shown above the rest, counted separately
 
         // The photographer's set is thousands of images and lands on top of
         // everything, so without this the guests' own photos are pushed
@@ -1431,12 +1449,14 @@
                     return n.source !== "photographer" && !n.imported;
                 });
 
-                addGroup("Fotografen", photographer);
                 // Standalone rather than in a group: one entry under a heading
-                // of the same name reads as a stutter.
+                // of the same name reads as a stutter. Above the photographer
+                // because it is a single line and his is a block of five —
+                // burying it under them would make it easy to miss.
                 scanned.forEach(function (e) {
                     addOption(people, e.name + " (" + e.count + ")", e.name);
                 });
+                addGroup("Fotografen", photographer);
                 addGroup("Billeder fra gæsterne", guests);
 
                 if (videoCount > 0 || names.length > 1) peopleWrap.hidden = false;
@@ -1487,7 +1507,7 @@
                 ? (photo.title || "Video fra brylluppet")
                 : (photo.guest_name
                     ? (photo.source === "photographer"
-                        ? "Billede fra " + photo.guest_name
+                        ? "Fotografens billede · " + photo.guest_name
                         : "Billede delt af " + photo.guest_name)
                     : "Billede fra brylluppet");
             if (photo.width && photo.height) {
@@ -1529,6 +1549,7 @@
             lowestSeq = null;
             exhausted = false;
             total = null;
+            pinnedTotal = 0;
             loadMore();
         }
 
@@ -1538,15 +1559,39 @@
             sentinel.textContent = "Indlæser flere…";
 
             try {
+                // One section greets people first, ahead of the newest-first
+                // order. Only on the unfiltered view: if you have asked for a
+                // particular section, pinning another one on top of it would
+                // be answering a question you did not ask.
+                const pinning = !!CONFIG.PINNED_NAME && !filter;
+
+                if (pinning && lowestSeq == null && !pinnedTotal) {
+                    const pin = await fetchPage(null, true, includeDeleted,
+                        opts.folder, { guestName: CONFIG.PINNED_NAME });
+                    // A pinned section has to fit in one page. Bigger than that
+                    // and the tail would be excluded below but never shown
+                    // above, so it is safer to leave the order alone.
+                    if (pin.rows.length && pin.rows.length < CONFIG.PAGE_SIZE) {
+                        pin.rows.forEach(function (row) { addTile(row, false); });
+                        pinnedTotal = pin.total != null ? pin.total : pin.rows.length;
+                    }
+                }
+
+                // Deliberately not `filter`: when pinning we want everything
+                // else, which is a different query from "no filter at all".
                 const page = await fetchPage(lowestSeq, total == null, includeDeleted,
-                    opts.folder, filter);
+                    opts.folder,
+                    pinnedTotal ? { excludeName: CONFIG.PINNED_NAME } : filter);
+
                 if (page.total != null) {
-                    total = page.total;
+                    total = page.total + pinnedTotal;
                     renderCount();
                 }
 
                 page.rows.forEach(function (row) {
                     addTile(row, false);
+                    // Only the main list drives paging. The pinned rows sit
+                    // outside that sequence and would corrupt the cursor.
                     if (lowestSeq == null || row.seq < lowestSeq) lowestSeq = row.seq;
                 });
 
@@ -1756,7 +1801,10 @@
                 ? (photo.title || "Video fra brylluppet")
                 : (photo.guest_name
                     ? (photo.source === "photographer"
-                        ? "Billede fra " + photo.guest_name
+                        // The section names no longer carry his name — the
+                        // dropdown groups them under "Fotografen" already — so
+                        // the caption is where the attribution has to live.
+                        ? "Fotografens billede · " + photo.guest_name
                         : "Delt af " + photo.guest_name)
                     : (photo.source === "photographer" ? "Fotografens billede" : ""));
 

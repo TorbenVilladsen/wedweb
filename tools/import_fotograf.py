@@ -179,7 +179,7 @@ def digest(path):
 # Én fil
 # --------------------------------------------------------------------------
 
-def handle(path, base, key, seen, lock, dry_run):
+def handle(path, base, key, seen, lock, dry_run, name=None, source="photographer"):
     file_hash = digest(path)
     with lock:
         if file_hash in seen:
@@ -213,11 +213,11 @@ def handle(path, base, key, seen, lock, dry_run):
         "storage_path": display_path,
         "thumb_path": thumb_path,
         "original_path": original_path,
-        "guest_name": None,
+        "guest_name": name,
         "width": width,
         "height": height,
         "taken_at": shot,
-        "source": "photographer",
+        "source": source,
         "import_hash": file_hash,
     }
     status, body = request(
@@ -250,6 +250,13 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="behandl billederne, men læg intet op")
     ap.add_argument("--workers", type=int, default=4, help="hvor mange ad gangen (standard 4)")
     ap.add_argument("--limit", type=int, help="stop efter så mange filer — god til en prøvetur")
+    ap.add_argument("--name", metavar="NAVN",
+                    help="navnet, billederne skal stå under i galleriets rullemenu, "
+                         "fx \"Fotografen\" eller \"Mormors kamera\". Uden den står de "
+                         "uden navn og kan kun findes under fanen Fotografen.")
+    ap.add_argument("--source", choices=("photographer", "guest", "couple"),
+                    default="photographer",
+                    help="hvilken fane billederne hører til (standard: photographer)")
     args = ap.parse_args()
 
     base = os.environ.get("SUPABASE_URL", "").rstrip("/")
@@ -266,6 +273,7 @@ def main():
         sys.exit("Fandt ingen billeder i " + args.folder)
 
     print("Fandt %d billeder." % len(files))
+    print("Navn i rullemenuen: %s" % (args.name or "(intet — kun under fanen Fotografen)"))
     seen = existing_hashes(base, key)
     print("Allerede lagt op: %d." % len(seen))
 
@@ -275,7 +283,8 @@ def main():
 
     def work(path):
         try:
-            return path, handle(path, base, key, seen, lock, args.dry_run), None
+            return path, handle(path, base, key, seen, lock, args.dry_run,
+                                args.name, args.source), None
         except Exception as e:
             return path, "failed", e
 

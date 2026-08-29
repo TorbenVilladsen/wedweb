@@ -134,6 +134,38 @@
     color: var(--text);
 }
 
+.gallery-notice {
+    max-width: 34rem;
+    margin: 1.4rem auto 2rem;
+    padding: 1rem 1.2rem;
+    border-radius: 14px;
+    background: rgba(196, 162, 101, 0.12);
+    border: 1px solid rgba(196, 162, 101, 0.3);
+    text-align: left;
+}
+
+.gallery-notice p {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--text);
+}
+
+.gallery-notice p + p {
+    margin-top: 0.7rem;
+}
+
+@media (max-width: 1024px) {
+    .gallery-notice {
+        margin: 1.2rem auto 1.6rem;
+        padding: 0.9rem 1rem;
+    }
+
+    .gallery-notice p {
+        font-size: 0.9rem;
+    }
+}
+
 .wed-summary {
     display: flex;
     align-items: center;

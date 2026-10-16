@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="da">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anne &amp; Torben</title>
+
+    <!-- The site is retired: nothing here should surface in a search result. -->
+    <!-- Served by GitHub Pages for every path that no longer exists, which
+         after the retirement is all of them: /Galleri/, /RSVP/, /admin/ and
+         the uid links in the guests' QR codes all land here. Identical to
+         index.html except that the asset paths are absolute. -->
+
+    <meta name="robots" content="noindex, nofollow">
+
+    <link rel="icon" type="image/x-icon" href="/assets/logo.ico">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style"
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400&family=Inter:wght@300;400&display=swap"
+        onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400&family=Inter:wght@300;400&display=swap">
+    </noscript>
+
+    <style>
+        /* One page, no scripts, no database. Everything it needs is in this
+           file and the three JPEGs beside it, so it keeps working untouched
+           long after the gallery and its Supabase project are gone.
+
+           The fallbacks on both font stacks are deliberate: if Google Fonts
+           ever stops answering, the page still reads correctly in Georgia. */
+
+        :root {
+            --bg: #faf8f4;
+            --text: #3a3535;
+            --text-light: #524c4c;
+            --accent-gold: #c4a265;
+            --font-heading: 'Playfair Display', Georgia, 'Times New Roman', serif;
+            --font-body: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-body);
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100svh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1.2rem;
+        }
+
+        main {
+            width: 100%;
+            max-width: 780px;
+            text-align: center;
+        }
+
+        .photo {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 16px;
+            box-shadow: 0 18px 50px rgba(58, 53, 53, 0.16);
+        }
+
+        .ornament {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.8rem;
+            margin: 2.4rem auto 1.6rem;
+        }
+
+        .ornament-line {
+            display: block;
+            width: 40px;
+            height: 1px;
+            background: var(--accent-gold);
+            opacity: 0.5;
+        }
+
+        .ornament-diamond {
+            display: block;
+            width: 5px;
+            height: 5px;
+            background: var(--accent-gold);
+            transform: rotate(45deg);
+            opacity: 0.6;
+            flex-shrink: 0;
+        }
+
+        h1 {
+            font-family: var(--font-heading);
+            font-size: 2rem;
+            font-weight: 400;
+            line-height: 1.45;
+            letter-spacing: 0.5px;
+            margin-bottom: 1.1rem;
+        }
+
+        .note {
+            color: var(--text-light);
+            font-size: 1.05rem;
+            font-weight: 300;
+            max-width: 30rem;
+            margin: 0 auto;
+        }
+
+        .signoff {
+            margin-top: 2.8rem;
+            font-family: var(--font-heading);
+            font-size: 0.8rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: rgba(58, 53, 53, 0.45);
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 1.6rem 1rem;
+            }
+
+            .photo {
+                border-radius: 12px;
+            }
+
+            .ornament {
+                margin: 1.8rem auto 1.2rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .note {
+                font-size: 0.95rem;
+            }
+
+            .signoff {
+                margin-top: 2rem;
+                font-size: 0.7rem;
+                letter-spacing: 2px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <img class="photo" src="/assets/takkekort-1400.jpg"
+            srcset="/assets/takkekort-900.jpg 900w,
+                    /assets/takkekort-1400.jpg 1400w,
+                    /assets/takkekort-2200.jpg 2200w"
+            sizes="(max-width: 780px) 100vw, 780px"
+            width="1400" height="933"
+            alt="Anne og Torben på badebroen efter vielsen">
+
+        <div class="ornament" aria-hidden="true">
+            <span class="ornament-line"></span>
+            <span class="ornament-diamond"></span>
+            <span class="ornament-line"></span>
+        </div>
+
+        <h1>Det var alt for denne gang.<br>Tak for nu.</h1>
+
+        <p class="note">
+            Skriv, hvis I har spørgsmål til billeder eller andet.
+        </p>
+
+        <p class="signoff">A &amp; T &nbsp;·&nbsp; 15. august 2026</p>
+    </main>
+</body>
+
+</html>

@@ -36,8 +36,11 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: '.'
+          # The site is retired. Only site/ is published: a single farewell
+          # page plus its images. The real site is still in this repository,
+          # untouched, and is tagged live-site-final — putting '.' back here
+          # is the whole of what it takes to publish it again.
+          path: './site'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
